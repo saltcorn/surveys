@@ -13,7 +13,12 @@ const {
   input,
   label,
   style,
+  form,
+  p,
+  text_attr,
 } = require("@saltcorn/markup/tags");
+const { radio_group } = require("@saltcorn/markup/helpers");
+
 const View = require("@saltcorn/data/models/view");
 const Workflow = require("@saltcorn/data/models/workflow");
 const Table = require("@saltcorn/data/models/table");
@@ -30,6 +35,7 @@ const {
   stateFieldsToWhere,
   add_free_variables_to_joinfields,
   picked_fields_to_query,
+  readState,
 } = require("@saltcorn/data/plugin-helper");
 const { features } = require("@saltcorn/data/db/state");
 
@@ -144,11 +150,29 @@ const get_state_fields = async (table_id, viewname, { show_view }) => {
 const run = async (
   table_id,
   viewname,
-  { relation, maxHeight, where, groupby },
+  { title_field, options_field, answer_relation, answer_field },
   state,
   extra
 ) => {
-  return "";
+  // what questions are in state?
+  const table = await Table.findOne({ id: table_id });
+  const fields = table.fields;
+  readState(state, fields);
+  const where = await stateFieldsToWhere({ fields, state, table });
+  const qs = await table.getRows(where);
+
+  return form(
+    {},
+    qs.map((q) =>
+      div(
+        p(q[title_field]),
+        radio_group({
+          name: `q${q[table.pk_name]}`,
+          options: q[options_field].split(",").map((s) => s.trim()),
+        })
+      )
+    )
+  );
 };
 
 module.exports = {
