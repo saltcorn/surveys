@@ -165,6 +165,7 @@ const run = async (
     {},
     qs.map((q) =>
       div(
+        { class: "mb-3" },
         p(q[title_field]),
         radio_group({
           name: `q${q[table.pk_name]}`,
