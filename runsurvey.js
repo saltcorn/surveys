@@ -122,10 +122,19 @@ const configuration_workflow = () =>
                   calcOptions: ["answer_relation", answer_field_opts],
                 },
               },
-              // answer relation
-              // answer choice field
+
               // answer row values
               // order questions by
+              {
+                name: "order_field",
+                label: "Order by field",
+                sublabel:
+                  "Order questions by this field if there are multiple questions in one survey",
+                type: "String",
+                attributes: {
+                  options: fields.map((f) => f.name),
+                },
+              },
               // autosave or submit button
               // destination
               {
@@ -155,7 +164,7 @@ const get_state_fields = async (table_id, viewname, { show_view }) => {
 const run = async (
   table_id,
   viewname,
-  { title_field, options_field, answer_relation, answer_field },
+  { title_field, options_field, order_field, answer_relation, answer_field },
   state,
   extra
 ) => {
@@ -164,7 +173,10 @@ const run = async (
   const fields = table.fields;
   readState(state, fields);
   const where = await stateFieldsToWhere({ fields, state, table });
-  const qs = await table.getRows(where);
+  const qs = await table.getRows(
+    where,
+    order_field ? { orderBy: order_field } : {}
+  );
 
   return form(
     { method: "POST", action: `/view/${viewname}` },
