@@ -128,6 +128,11 @@ const configuration_workflow = () =>
               // order questions by
               // autosave or submit button
               // destination
+              {
+                name: "destination_url",
+                label: "Destination URL",
+                type: "String",
+              },
             ],
           });
         },
@@ -162,7 +167,8 @@ const run = async (
   const qs = await table.getRows(where);
 
   return form(
-    {},
+    { method: "POST", action: `/view/${viewname}` },
+    input({ type: "hidden", name: "_csrf", value: extra.req.csrfToken() }),
     qs.map((q) =>
       div(
         { class: "mb-3" },
@@ -172,8 +178,45 @@ const run = async (
           options: q[options_field].split(",").map((s) => s.trim()),
         })
       )
-    )
+    ),
+    button({ type: "submit", class: "btn btn-primary" }, "Save")
   );
+};
+
+const runPost = async (
+  table_id,
+  viewname,
+  {
+    title_field,
+    options_field,
+    answer_relation,
+    answer_field,
+    destination_url,
+  },
+  state,
+  body,
+  { res, req, redirect },
+  queries,
+  remote
+) => {
+  const table = Table.findOne({ id: table_id });
+  const fields = table.getFields();
+  readState(state, fields);
+  const where = await stateFieldsToWhere({ fields, state, table });
+  const qs = await table.getRows(where);
+
+  const [ansTableName, ansTableKey] = answer_relation.split(".");
+  const ansTable = Table.findOne({ name: ansTableName });
+  for (const qrow of qs) {
+    await ansTable.insertRow(
+      {
+        [ansTableKey]: qrow[table.pk_name],
+        [answer_field]: body[`q${qrow[table.pk_name]}`],
+      },
+      req.user
+    );
+  }
+  res.redirect(destination_url);
 };
 
 module.exports = {
@@ -182,4 +225,5 @@ module.exports = {
   get_state_fields,
   configuration_workflow,
   run,
+  runPost,
 };
