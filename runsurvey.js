@@ -270,6 +270,8 @@ const runPost = async (
     answer_relation,
     answer_field,
     destination_url,
+    type_field,
+    fixed_type,
   },
   state,
   body,
@@ -286,10 +288,14 @@ const runPost = async (
   const [ansTableName, ansTableKey] = answer_relation.split(".");
   const ansTable = Table.findOne({ name: ansTableName });
   for (const qrow of qs) {
+    const qtype = type_field === "Fixed" ? fixed_type : qrow[type_field];
     await ansTable.insertRow(
       {
         [ansTableKey]: qrow[table.pk_name],
-        [answer_field]: body[`q${qrow[table.pk_name]}`],
+        [answer_field]:
+          qtype === "Yes/No"
+            ? body[`q${qrow[table.pk_name]}`] === "on"
+            : body[`q${qrow[table.pk_name]}`],
       },
       req.user
     );
@@ -311,6 +317,7 @@ module.exports = {
 -different types
 -JSON answer types works
 -autosave option
+-extra row values
 
 
 */
