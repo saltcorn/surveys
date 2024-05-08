@@ -283,7 +283,7 @@ const run = async (
         console.log("Change survey", event)
         const $input = $(event.target)
         const name = $input.attr('name')
-        const value = $input.val()
+        const value = $input.attr("type") ==="checkbox" ? $input.is(":checked"): $input.val()
         const dataObj = {name, value}
         if(ansIds[name]) 
           dataObj.answer_id = ansIds[name];
@@ -413,7 +413,6 @@ module.exports = {
 
 /* TO DO
 
--autosave option
 -extra row values
 
 */
