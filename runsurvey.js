@@ -57,7 +57,9 @@ const configuration_workflow = () =>
             const rel = `${table.name}.${key_field.name}`;
             answer_field_opts[rel] = [];
             table.fields
-              .filter((f) => f.type?.name === "String")
+              .filter(
+                (f) => f.type?.name === "String" || f.type?.name === "JSON"
+              )
               .forEach((f) => {
                 answer_field_opts[rel].push(f.name);
               });
@@ -126,10 +128,7 @@ const configuration_workflow = () =>
                 required: true,
                 attributes: {
                   options: fields
-                    .filter(
-                      (f) =>
-                        f.type?.name === "String" || f.type?.name === "JSON"
-                    )
+                    .filter((f) => f.type?.name === "String")
                     .map((f) => f.name),
                 },
               },
@@ -287,19 +286,24 @@ const runPost = async (
 
   const [ansTableName, ansTableKey] = answer_relation.split(".");
   const ansTable = Table.findOne({ name: ansTableName });
+  const ansField = ansTable.getField(answer_field);
+  let wrap =
+    ansField.type.name === "JSON" ? (s) => JSON.stringify(s) : (s) => s;
   for (const qrow of qs) {
     const qtype = type_field === "Fixed" ? fixed_type : qrow[type_field];
     await ansTable.insertRow(
       {
         [ansTableKey]: qrow[table.pk_name],
-        [answer_field]:
+        [answer_field]: wrap(
           qtype === "Yes/No"
             ? body[`q${qrow[table.pk_name]}`] === "on"
-            : body[`q${qrow[table.pk_name]}`],
+            : body[`q${qrow[table.pk_name]}`]
+        ),
       },
       req.user
     );
   }
+
   res.redirect(destination_url);
 };
 
@@ -314,10 +318,7 @@ module.exports = {
 
 /* TO DO
 
--different types
--JSON answer types works
 -autosave option
 -extra row values
-
 
 */
