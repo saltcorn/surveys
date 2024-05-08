@@ -161,12 +161,22 @@ const configuration_workflow = () =>
                   options: fields.map((f) => f.name),
                 },
               },
+              {
+                name: "how_save",
+                label: "Save option",
+                type: "String",
+                required: true,
+                attributes: {
+                  options: ["Save button with destination", "Auto-save"],
+                },
+              },
               // autosave or submit button
               // destination
               {
                 name: "destination_url",
                 label: "Destination URL",
                 type: "String",
+                showIf: { how_save: "Save button with destination" },
               },
             ],
           });
@@ -198,6 +208,7 @@ const run = async (
     answer_field,
     type_field,
     fixed_type,
+    how_save,
   },
   state,
   extra
@@ -211,9 +222,16 @@ const run = async (
     where,
     order_field ? { orderBy: order_field } : {}
   );
-
+  const rndid = Math.round(Math.random() * 100000);
   return form(
-    { method: "POST", action: `/view/${viewname}` },
+    {
+      method: "POST",
+      action: `/view/${viewname}`,
+      onChange:
+        how_save === "Auto-save"
+          ? `change_survey_${viewname}_${rndid}(event)`
+          : undefined,
+    },
     input({ type: "hidden", name: "_csrf", value: extra.req.csrfToken() }),
     qs.map((q, qix) => {
       const qtype = type_field === "Fixed" ? fixed_type : q[type_field];
@@ -256,7 +274,27 @@ const run = async (
           )
         );
     }),
-    button({ type: "submit", class: "btn btn-primary" }, "Save")
+    how_save === "Save button with destination"
+      ? button({ type: "submit", class: "btn btn-primary" }, "Save")
+      : script(
+          domReady(`
+      let ansIds = {}
+      window.change_survey_${viewname}_${rndid} = (event)=>{
+        console.log("Change survey", event)
+        const $input = $(event.target)
+        const name = $input.attr('name')
+        const value = $input.val()
+        const dataObj = {name, value}
+        if(ansIds[name]) 
+          dataObj.answer_id = ansIds[name];
+        
+        view_post('${viewname}', 'autosave_answer', dataObj,(res)=>{
+          console.log("asc res", res)
+          if(res.answer_id) ansIds[name] = res.answer_id;
+        });
+
+      }`)
+        )
   );
 };
 
@@ -280,7 +318,7 @@ const runPost = async (
 ) => {
   const table = Table.findOne({ id: table_id });
   const fields = table.getFields();
-  readState(state, fields);
+  readState(state, fields); // there is no state here
   const where = await stateFieldsToWhere({ fields, state, table });
   const qs = await table.getRows(where);
 
@@ -307,6 +345,62 @@ const runPost = async (
   res.redirect(destination_url);
 };
 
+//whole column has been moved
+const autosave_answer = async (
+  table_id,
+  viewname,
+  {
+    title_field,
+    options_field,
+    answer_relation,
+    answer_field,
+    destination_url,
+    type_field,
+    fixed_type,
+  },
+  body,
+  { req }
+) => {
+  const table = await Table.findOne({ id: table_id });
+  console.log(body);
+  const qid = +body.name.substring(1);
+  const qrow = await table.getRow({ [table.pk_name]: qid });
+  const [ansTableName, ansTableKey] = answer_relation.split(".");
+
+  const ansTable = Table.findOne({ name: ansTableName });
+  const ansField = ansTable.getField(answer_field);
+  let wrap =
+    ansField.type.name === "JSON" ? (s) => JSON.stringify(s) : (s) => s;
+  const qtype = type_field === "Fixed" ? fixed_type : qrow[type_field];
+  if (body.answer_id) {
+    await ansTable.updateRow(
+      {
+        [answer_field]: wrap(
+          qtype === "Yes/No"
+            ? body[`q${qrow[table.pk_name]}`] === "on"
+            : body[`q${qrow[table.pk_name]}`]
+        ),
+      },
+      body.answer_id,
+      req.user
+    );
+    return { json: { success: "ok" } };
+  } else {
+    const insres = await ansTable.insertRow(
+      {
+        [ansTableKey]: qrow[table.pk_name],
+        [answer_field]: wrap(
+          qtype === "Yes/No"
+            ? body[`q${qrow[table.pk_name]}`] === "on"
+            : body[`q${qrow[table.pk_name]}`]
+        ),
+      },
+      req.user
+    );
+    return { json: { success: "ok", answer_id: insres } };
+  }
+};
+
 module.exports = {
   name: "Survey",
   display_state_form: false,
@@ -314,6 +408,7 @@ module.exports = {
   configuration_workflow,
   run,
   runPost,
+  routes: { autosave_answer },
 };
 
 /* TO DO
