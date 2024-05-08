@@ -12,6 +12,7 @@ const {
   div,
   input,
   label,
+  textarea,
   style,
   form,
   p,
@@ -95,6 +96,29 @@ const configuration_workflow = () =>
                 },
               },
               {
+                name: "type_field",
+                label: "Question type field",
+                type: "String",
+                required: true,
+                attributes: {
+                  options: [
+                    ...fields
+                      .filter((f) => f.type?.name === "Question type")
+                      .map((f) => f.name),
+                    "Fixed",
+                  ],
+                },
+              },
+              {
+                name: "fixed_type",
+                label: "Fixed question type",
+                type: "Question type",
+                required: true,
+                fieldview: "edit",
+                showIf: { type_field: "Fixed" },
+              },
+
+              {
                 name: "options_field",
                 label: "Options field",
                 sublabel: "Field holding the possible answers to the question",
@@ -102,7 +126,10 @@ const configuration_workflow = () =>
                 required: true,
                 attributes: {
                   options: fields
-                    .filter((f) => f.type?.name === "String")
+                    .filter(
+                      (f) =>
+                        f.type?.name === "String" || f.type?.name === "JSON"
+                    )
                     .map((f) => f.name),
                 },
               },
@@ -164,7 +191,15 @@ const get_state_fields = async (table_id, viewname, { show_view }) => {
 const run = async (
   table_id,
   viewname,
-  { title_field, options_field, order_field, answer_relation, answer_field },
+  {
+    title_field,
+    options_field,
+    order_field,
+    answer_relation,
+    answer_field,
+    type_field,
+    fixed_type,
+  },
   state,
   extra
 ) => {
@@ -181,16 +216,27 @@ const run = async (
   return form(
     { method: "POST", action: `/view/${viewname}` },
     input({ type: "hidden", name: "_csrf", value: extra.req.csrfToken() }),
-    qs.map((q) =>
-      div(
-        { class: "mb-3" },
-        p(q[title_field]),
-        radio_group({
-          name: `q${q[table.pk_name]}`,
-          options: q[options_field].split(",").map((s) => s.trim()),
-        })
-      )
-    ),
+    qs.map((q) => {
+      const qtype = type_field === "Fixed" ? fixed_type : q[type_field];
+      if (qtype === "Multiple choice")
+        return div(
+          { class: "mb-3" },
+          p(q[title_field]),
+          radio_group({
+            name: `q${q[table.pk_name]}`,
+            options: q[options_field].split(",").map((s) => s.trim()),
+          })
+        );
+      if (qtype === "Free text")
+        return div(
+          { class: "mb-3" },
+          p(q[title_field]),
+          textarea({
+            class: "form-control",
+            name: `q${q[table.pk_name]}`,
+          })
+        );
+    }),
     button({ type: "submit", class: "btn btn-primary" }, "Save")
   );
 };
@@ -239,3 +285,12 @@ module.exports = {
   run,
   runPost,
 };
+
+/* TO DO
+
+-different types
+-JSON answer types works
+-autosave option
+
+
+*/
