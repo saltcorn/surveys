@@ -216,7 +216,7 @@ const run = async (
   return form(
     { method: "POST", action: `/view/${viewname}` },
     input({ type: "hidden", name: "_csrf", value: extra.req.csrfToken() }),
-    qs.map((q) => {
+    qs.map((q, qix) => {
       const qtype = type_field === "Fixed" ? fixed_type : q[type_field];
       if (qtype === "Multiple choice")
         return div(
@@ -235,6 +235,26 @@ const run = async (
             class: "form-control",
             name: `q${q[table.pk_name]}`,
           })
+        );
+      if (qtype === "Yes/No")
+        return div(
+          { class: "mb-3" },
+          div(
+            { class: "form-check form-switch" },
+            input({
+              class: "form-check-input",
+              name: `q${q[table.pk_name]}`,
+              type: "checkbox",
+              id: `switchCheck_${viewname}_${qix}`,
+            }),
+            label(
+              {
+                class: "form-check-label",
+                for: `switchCheck_${viewname}_${qix}`,
+              },
+              q[title_field]
+            )
+          )
         );
     }),
     button({ type: "submit", class: "btn btn-primary" }, "Save")
