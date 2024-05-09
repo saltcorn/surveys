@@ -162,6 +162,15 @@ const configuration_workflow = () =>
                 },
               },
               {
+                name: "field_values_formula",
+                label: "Row values formula",
+                class: "validate-expression",
+                sublabel:
+                  "Additional field values set on the answer table. <code>row</code> referes to the view state. For example <code>{project: row.project, user: user.id, filled: new Date()}</code>",
+                type: "String",
+                fieldview: "textarea",
+              },
+              {
                 name: "how_save",
                 label: "Save option",
                 type: "String",
@@ -233,6 +242,11 @@ const run = async (
           : undefined,
     },
     input({ type: "hidden", name: "_csrf", value: extra.req.csrfToken() }),
+    input({
+      type: "hidden",
+      name: "_state",
+      value: text_attr(JSON.stringify(state)),
+    }),
     qs.map((q, qix) => {
       const qtype = type_field === "Fixed" ? fixed_type : q[type_field];
       if (qtype === "Multiple choice")
@@ -309,8 +323,9 @@ const runPost = async (
     destination_url,
     type_field,
     fixed_type,
+    field_values_formula,
   },
-  state,
+  _state,
   body,
   { res, req, redirect },
   queries,
@@ -318,6 +333,7 @@ const runPost = async (
 ) => {
   const table = Table.findOne({ id: table_id });
   const fields = table.getFields();
+  const state = JSON.parse(body._state);
   readState(state, fields); // there is no state here
   const where = await stateFieldsToWhere({ fields, state, table });
   const qs = await table.getRows(where);
@@ -327,10 +343,15 @@ const runPost = async (
   const ansField = ansTable.getField(answer_field);
   let wrap =
     ansField.type.name === "JSON" ? (s) => JSON.stringify(s) : (s) => s;
+  let extraVals = {};
+  if (field_values_formula) {
+    extraVals = eval_expression(field_values_formula, state, req.user);
+  }
   for (const qrow of qs) {
     const qtype = type_field === "Fixed" ? fixed_type : qrow[type_field];
     await ansTable.insertRow(
       {
+        ...extraVals,
         [ansTableKey]: qrow[table.pk_name],
         [answer_field]: wrap(
           qtype === "Yes/No"
@@ -362,7 +383,6 @@ const autosave_answer = async (
   { req }
 ) => {
   const table = await Table.findOne({ id: table_id });
-  console.log(body);
   const qid = +body.name.substring(1);
   const qrow = await table.getRow({ [table.pk_name]: qid });
   const [ansTableName, ansTableKey] = answer_relation.split(".");
