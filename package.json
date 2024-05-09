@@ -1,6 +1,6 @@
 {
   "name": "@saltcorn/surveys",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Surveys and questionnaires",
   "main": "index.js",
   "dependencies": {
