@@ -298,7 +298,7 @@ const run = async (
         const $input = $(event.target)
         const name = $input.attr('name')
         const value = $input.attr("type") ==="checkbox" ? $input.is(":checked"): $input.val()
-        const dataObj = {name, value}
+        const dataObj = {name, value, state: ${JSON.stringify(state)}}
         if(ansIds[name]) 
           dataObj.answer_id = ansIds[name];
         
@@ -378,6 +378,7 @@ const autosave_answer = async (
     destination_url,
     type_field,
     fixed_type,
+    field_values_formula,
   },
   body,
   { req }
@@ -386,15 +387,21 @@ const autosave_answer = async (
   const qid = +body.name.substring(1);
   const qrow = await table.getRow({ [table.pk_name]: qid });
   const [ansTableName, ansTableKey] = answer_relation.split(".");
+  const state = body.state;
 
   const ansTable = Table.findOne({ name: ansTableName });
   const ansField = ansTable.getField(answer_field);
   let wrap =
     ansField.type.name === "JSON" ? (s) => JSON.stringify(s) : (s) => s;
+  let extraVals = {};
+  if (field_values_formula) {
+    extraVals = eval_expression(field_values_formula, state, req.user);
+  }
   const qtype = type_field === "Fixed" ? fixed_type : qrow[type_field];
   if (body.answer_id) {
     await ansTable.updateRow(
       {
+        ...extraVals,
         [answer_field]: wrap(
           qtype === "Yes/No"
             ? body[`q${qrow[table.pk_name]}`] === "on"
@@ -408,6 +415,7 @@ const autosave_answer = async (
   } else {
     const insres = await ansTable.insertRow(
       {
+        ...extraVals,
         [ansTableKey]: qrow[table.pk_name],
         [answer_field]: wrap(
           qtype === "Yes/No"
@@ -432,7 +440,5 @@ module.exports = {
 };
 
 /* TO DO
-
--extra row values
 
 */
