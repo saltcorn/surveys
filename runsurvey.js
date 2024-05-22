@@ -40,6 +40,44 @@ const {
 } = require("@saltcorn/data/plugin-helper");
 const { features } = require("@saltcorn/data/db/state");
 
+const checkbox_group = ({
+  name,
+  options,
+  value,
+  inline,
+  form_name,
+  onChange,
+  ...rest
+}) =>
+  div(
+    (options || [])
+      .filter((o) => (typeof o === "string" ? o : o.value))
+      .map((o, ix) => {
+        const myvalue = typeof o === "string" ? o : o.value;
+        const id = `input${text_attr(name)}${ix}`;
+        return div(
+          { class: ["form-check", inline && "form-check-inline"] },
+          input({
+            class: ["form-check-input", rest.class],
+            type: "checkbox",
+            name,
+            onChange,
+            "data-fieldname": form_name,
+            id,
+            value: text_attr(myvalue),
+            checked: Array.isArray(value)
+              ? value.includes(myvalue)
+              : myvalue === value,
+          }),
+          label(
+            { class: "form-check-label", for: id },
+            typeof o === "string" ? o : o.label
+          )
+        );
+      })
+      .join("")
+  );
+
 const configuration_workflow = () =>
   new Workflow({
     steps: [
@@ -63,24 +101,12 @@ const configuration_workflow = () =>
               .forEach((f) => {
                 answer_field_opts[rel].push(f.name);
               });
-            /*  const keyFields = table.fields.filter(
-              (f) =>
-                f.type === "Key" && !["_sc_files"].includes(f.reftable_name)
-            );
-           for (const kf of keyFields) {
-              const joined_table = await Table.findOne({
-                name: kf.reftable_name,
-              });
-              if (!joined_table) continue;
-              await joined_table.getFields();
-              joined_table.fields.forEach((jf) => {
-                agg_field_opts.push({
-                  label: `${table.name}.${key_field.name}&#8594;${kf.name}&#8594;${jf.name}`,
-                  name: `${table.name}.${key_field.name}.${kf.name}.${jf.name}`,
-                });
-              });
-            }*/
           }
+          const numFields = fields
+            .filter(
+              (f) => f.type?.name === "Integer" || f.type?.name === "Float"
+            )
+            .map((f) => f.name);
 
           console.log("AFOs", answer_field_opts);
           return new Form({
@@ -119,17 +145,35 @@ const configuration_workflow = () =>
                 fieldview: "edit",
                 showIf: { type_field: "Fixed" },
               },
-
               {
                 name: "options_field",
                 label: "Options field",
                 sublabel: "Field holding the possible answers to the question",
                 type: "String",
-                required: true,
                 attributes: {
                   options: fields
                     .filter((f) => f.type?.name === "String")
                     .map((f) => f.name),
+                },
+              },
+              {
+                name: "lower_field",
+                label: "Lower bound field",
+                sublabel:
+                  "Field holding the lower bound to for number questions",
+                type: "String",
+                attributes: {
+                  options: numFields,
+                },
+              },
+              {
+                name: "upper_field",
+                label: "Upper bound field",
+                sublabel:
+                  "Field holding the upper bound to for number questions",
+                type: "String",
+                attributes: {
+                  options: numFields,
                 },
               },
               {
@@ -280,6 +324,17 @@ const run = async (
             options: q[options_field].split(",").map((s) => s.trim()),
           })
         );
+      if (qtype === "Multiple checks")
+        return div(
+          { class: "mb-3 survey-question survey-question-mcq" },
+          p({ class: "survey-question-text" }, q[title_field]),
+          checkbox_group({
+            name: `q${q[table.pk_name]}`,
+            value: existing_values[q[table.pk_name]],
+            options: q[options_field].split(",").map((s) => s.trim()),
+            class: "multicheck",
+          })
+        );
       if (qtype === "Free text")
         return div(
           { class: "mb-3 survey-question survey-question-free-text" },
@@ -321,9 +376,17 @@ const run = async (
       let ansIds = ${JSON.stringify(existing_answer_ids)}
       window.change_survey_${viewname}_${rndid} = (event)=>{
         console.log("Change survey", event)
-        const $input = $(event.target)
+        const $input = $(event.target)        
         const name = $input.attr('name')
-        const value = $input.attr("type") ==="checkbox" ? $input.is(":checked"): $input.val()
+        let value;
+        if($input.hasClass("multicheck")) {
+          value = []
+          $('input[name="' + name + '"]:checked').each(function() {
+            value.push($(this).val());
+          })
+        } else {
+          value = $input.attr("type") ==="checkbox" ? $input.is(":checked"): $input.val()
+        }
         const dataObj = {name, value, state: ${JSON.stringify(state)}}
         if(ansIds[name]) 
           dataObj.answer_id = ansIds[name];

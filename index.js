@@ -29,9 +29,15 @@ const questionType = {
             autocomplete: "off",
             required: required,
           },
-          ["Yes/No", "Free text", "Multiple choice"].map((o) =>
-            option({ selected: v === o }, o)
-          )
+          [
+            "Yes/No",
+            "Free text",
+            "Free rich text",
+            "Multiple choice",
+            "Multiple checks",
+            "Integer",
+            "Float",
+          ].map((o) => option({ selected: v === o }, o))
         );
       },
     },
