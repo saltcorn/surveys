@@ -271,8 +271,8 @@ const run = async (
       const qtype = type_field === "Fixed" ? fixed_type : q[type_field];
       if (qtype === "Multiple choice")
         return div(
-          { class: "mb-3" },
-          p(q[title_field]),
+          { class: "mb-3 survey-question survey-question-mcq" },
+          p({ class: "survey-question-text" }, q[title_field]),
           radio_group({
             name: `q${q[table.pk_name]}`,
             value: existing_values[q[table.pk_name]],
@@ -281,8 +281,8 @@ const run = async (
         );
       if (qtype === "Free text")
         return div(
-          { class: "mb-3" },
-          p(q[title_field]),
+          { class: "mb-3 survey-question survey-question-free-text" },
+          p({ class: "survey-question-text" }, q[title_field]),
           textarea(
             {
               class: "form-control",
@@ -293,7 +293,7 @@ const run = async (
         );
       if (qtype === "Yes/No")
         return div(
-          { class: "mb-3" },
+          { class: "mb-3 survey-question survey-question-yesno" },
           div(
             { class: "form-check form-switch" },
             input({
@@ -305,7 +305,7 @@ const run = async (
             }),
             label(
               {
-                class: "form-check-label",
+                class: "form-check-label survey-question-text",
                 for: `switchCheck_${viewname}_${qix}`,
               },
               q[title_field]
