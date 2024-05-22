@@ -426,7 +426,7 @@ const autosave_answer = async (
   const new_row = {
     ...extraVals,
     [ansTableKey]: qrow[table.pk_name],
-    [answer_field]: wrap(qtype === "Yes/No" ? body.value === "on" : body.value),
+    [answer_field]: wrap(body.value),
   };
 
   if (body.answer_id) {
