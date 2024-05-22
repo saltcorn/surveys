@@ -187,6 +187,11 @@ const configuration_workflow = () =>
                 type: "String",
                 showIf: { how_save: "Save button with destination" },
               },
+              {
+                name: "load_existing_answers",
+                label: "Load existing answers",
+                type: "Bool",
+              },
             ],
           });
         },
@@ -218,6 +223,7 @@ const run = async (
     type_field,
     fixed_type,
     how_save,
+    load_existing_answers,
   },
   state,
   extra
@@ -232,6 +238,20 @@ const run = async (
     order_field ? { orderBy: order_field } : {}
   );
   const rndid = Math.round(Math.random() * 100000);
+  const existing_values = {};
+  const existing_answer_ids = {};
+  if (load_existing_answers) {
+    const [ansTableName, ansTableKey] = answer_relation.split(".");
+    const ansTable = Table.findOne({ name: ansTableName });
+    const ansField = ansTable.getField(answer_field);
+    const ans_rows = await ansTable.getRows({
+      [ansTableKey]: { in: qs.map((qrow) => qrow[table.pk_name]) },
+    });
+    ans_rows.forEach((arow) => {
+      existing_values[arow[ansTableKey]] = arow[answer_field];
+      existing_answer_ids[`q${arow[ansTableKey]}`] = arow[ansTable.pk_name];
+    });
+  }
   return form(
     {
       method: "POST",
@@ -255,6 +275,7 @@ const run = async (
           p(q[title_field]),
           radio_group({
             name: `q${q[table.pk_name]}`,
+            value: existing_values[q[table.pk_name]],
             options: q[options_field].split(",").map((s) => s.trim()),
           })
         );
@@ -262,10 +283,13 @@ const run = async (
         return div(
           { class: "mb-3" },
           p(q[title_field]),
-          textarea({
-            class: "form-control",
-            name: `q${q[table.pk_name]}`,
-          })
+          textarea(
+            {
+              class: "form-control",
+              name: `q${q[table.pk_name]}`,
+            },
+            existing_values[q[table.pk_name]] || ""
+          )
         );
       if (qtype === "Yes/No")
         return div(
@@ -277,6 +301,7 @@ const run = async (
               name: `q${q[table.pk_name]}`,
               type: "checkbox",
               id: `switchCheck_${viewname}_${qix}`,
+              checked: existing_values[q[table.pk_name]] === true,
             }),
             label(
               {
@@ -292,7 +317,7 @@ const run = async (
       ? button({ type: "submit", class: "btn btn-primary" }, "Save")
       : script(
           domReady(`
-      let ansIds = {}
+      let ansIds = ${JSON.stringify(existing_answer_ids)}
       window.change_survey_${viewname}_${rndid} = (event)=>{
         console.log("Change survey", event)
         const $input = $(event.target)
