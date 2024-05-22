@@ -32,7 +32,7 @@ const questionType = {
           [
             "Yes/No",
             "Free text",
-            "Free rich text",
+            //"Free rich text",
             "Multiple choice",
             "Multiple checks",
             "Integer",

@@ -268,6 +268,8 @@ const run = async (
     fixed_type,
     how_save,
     load_existing_answers,
+    lower_field,
+    upper_field,
   },
   state,
   extra
@@ -326,7 +328,7 @@ const run = async (
         );
       if (qtype === "Multiple checks")
         return div(
-          { class: "mb-3 survey-question survey-question-mcq" },
+          { class: "mb-3 survey-question survey-question-mcc" },
           p({ class: "survey-question-text" }, q[title_field]),
           checkbox_group({
             name: `q${q[table.pk_name]}`,
@@ -346,6 +348,33 @@ const run = async (
             },
             existing_values[q[table.pk_name]] || ""
           )
+        );
+      if (qtype === "Integer")
+        return div(
+          { class: "mb-3 survey-question survey-question-int" },
+          p({ class: "survey-question-text" }, q[title_field]),
+          input({
+            class: "form-control",
+            name: `q${q[table.pk_name]}`,
+            type: "number",
+            max: q[upper_field],
+            min: q[lower_field],
+            step: 1,
+            value: existing_values[q[table.pk_name]],
+          })
+        );
+      if (qtype === "Float")
+        return div(
+          { class: "mb-3 survey-question survey-question-int" },
+          p({ class: "survey-question-text" }, q[title_field]),
+          input({
+            class: "form-control",
+            name: `q${q[table.pk_name]}`,
+            type: "number",
+            max: q[upper_field],
+            min: q[lower_field],
+            value: existing_values[q[table.pk_name]],
+          })
         );
       if (qtype === "Yes/No")
         return div(
