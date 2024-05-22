@@ -256,6 +256,7 @@ const run = async (
     {
       method: "POST",
       action: `/view/${viewname}`,
+      class: `survey survey-${viewname.replaceAll(" ", "")}`,
       onChange:
         how_save === "Auto-save"
           ? `change_survey_${viewname}_${rndid}(event)`
