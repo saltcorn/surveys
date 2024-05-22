@@ -398,33 +398,17 @@ const autosave_answer = async (
     extraVals = eval_expression(field_values_formula, state, req.user);
   }
   const qtype = type_field === "Fixed" ? fixed_type : qrow[type_field];
+  const new_row = {
+    ...extraVals,
+    [ansTableKey]: qrow[table.pk_name],
+    [answer_field]: wrap(qtype === "Yes/No" ? body.value === "on" : body.value),
+  };
+
   if (body.answer_id) {
-    await ansTable.updateRow(
-      {
-        ...extraVals,
-        [answer_field]: wrap(
-          qtype === "Yes/No"
-            ? body[`q${qrow[table.pk_name]}`] === "on"
-            : body[`q${qrow[table.pk_name]}`]
-        ),
-      },
-      body.answer_id,
-      req.user
-    );
+    await ansTable.updateRow(new_row, body.answer_id, req.user);
     return { json: { success: "ok" } };
   } else {
-    const insres = await ansTable.insertRow(
-      {
-        ...extraVals,
-        [ansTableKey]: qrow[table.pk_name],
-        [answer_field]: wrap(
-          qtype === "Yes/No"
-            ? body[`q${qrow[table.pk_name]}`] === "on"
-            : body[`q${qrow[table.pk_name]}`]
-        ),
-      },
-      req.user
-    );
+    const insres = await ansTable.insertRow(new_row, req.user);
     return { json: { success: "ok", answer_id: insres } };
   }
 };
