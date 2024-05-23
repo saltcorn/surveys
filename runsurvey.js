@@ -485,7 +485,9 @@ const runPost = async (
   const ansTable = Table.findOne({ name: ansTableName });
   const ansField = ansTable.getField(answer_field);
   let wrap =
-    ansField.type.name === "JSON" ? (s) => JSON.stringify(s) : (s) => s;
+    ansField.type.name === "JSON" && !features?.stringify_json_fields
+      ? (s) => JSON.stringify(s)
+      : (s) => s;
   let extraVals = {};
   if (field_values_formula) {
     extraVals = eval_expression(field_values_formula, state, req.user);
@@ -535,7 +537,9 @@ const autosave_answer = async (
   const ansTable = Table.findOne({ name: ansTableName });
   const ansField = ansTable.getField(answer_field);
   let wrap =
-    ansField.type.name === "JSON" ? (s) => JSON.stringify(s) : (s) => s;
+    ansField.type.name === "JSON" && !features?.stringify_json_fields
+      ? (s) => JSON.stringify(s)
+      : (s) => s;
   let extraVals = {};
   if (field_values_formula) {
     extraVals = eval_expression(field_values_formula, state, req.user);
