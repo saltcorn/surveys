@@ -440,9 +440,11 @@ const run = async (
               ? `
           const complete = qnames.every(qn=>!!ansIds[qn]);
           if(complete) 
-            view_post('${viewname}', 'completed', dataObj)
-          
-          `
+            view_post('${viewname}', 'completed', {
+                state: ${JSON.stringify(state)},
+                answer_ids: Object.values(ansIds),
+                question_ids: ${JSON.stringify(qs.map((q) => q.id))}
+              })`
               : ""
           }
         });
@@ -571,10 +573,23 @@ const completed = async (
   { req }
 ) => {
   const table = await Table.findOne({ id: table_id });
-
+  const questions = await table.getRows({
+    [table.pk_name]: { in: body.question_ids },
+  });
+  const [ansTableName, ansTableKey] = answer_relation.split(".");
+  const ansTable = Table.findOne({ name: ansTableName });
+  const answers = await ansTable.getRows({
+    [ansTable.pk_name]: { in: body.answer_ids },
+  });
   const state = body.state;
   const trigger = await Trigger.findOne({ name: complete_action });
-  const action_result = await trigger.runWithoutRow({ req, user: req.user });
+  const action_result = await trigger.runWithoutRow({
+    req,
+    user: req.user,
+    questions,
+    answers,
+    state,
+  });
   return { json: { success: "ok", ...action_result } };
 };
 
