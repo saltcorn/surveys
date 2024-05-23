@@ -24,6 +24,7 @@ const View = require("@saltcorn/data/models/view");
 const Workflow = require("@saltcorn/data/models/workflow");
 const Table = require("@saltcorn/data/models/table");
 const Form = require("@saltcorn/data/models/form");
+const Trigger = require("@saltcorn/data/models/trigger");
 const Field = require("@saltcorn/data/models/field");
 const {
   jsexprToWhere,
@@ -108,7 +109,7 @@ const configuration_workflow = () =>
             )
             .map((f) => f.name);
 
-          console.log("AFOs", answer_field_opts);
+          const triggers = await Trigger.find({});
           return new Form({
             blurb: "Survey fields and answer relation",
             fields: [
@@ -236,6 +237,16 @@ const configuration_workflow = () =>
                 label: "Load existing answers",
                 type: "Bool",
               },
+              {
+                name: "complete_action",
+                label: "Complete action",
+                sublabel:
+                  "Run this action when all questions have been answered",
+                type: "String",
+                attributes: {
+                  options: triggers.map((tr) => tr.name),
+                },
+              },
             ],
           });
         },
@@ -270,6 +281,7 @@ const run = async (
     load_existing_answers,
     lower_field,
     upper_field,
+    complete_action,
   },
   state,
   extra
@@ -403,8 +415,8 @@ const run = async (
       : script(
           domReady(`
       let ansIds = ${JSON.stringify(existing_answer_ids)}
+      const qnames= ${JSON.stringify(qs.map((q) => `q${q.id}`))}
       window.change_survey_${viewname}_${rndid} = (event)=>{
-        console.log("Change survey", event)
         const $input = $(event.target)        
         const name = $input.attr('name')
         let value;
@@ -421,9 +433,20 @@ const run = async (
           dataObj.answer_id = ansIds[name];
         
         view_post('${viewname}', 'autosave_answer', dataObj,(res)=>{
-          console.log("asc res", res)
           if(res.answer_id) ansIds[name] = res.answer_id;
+
+          ${
+            complete_action
+              ? `
+          const complete = qnames.every(qn=>!!ansIds[qn]);
+          if(complete) 
+            view_post('${viewname}', 'completed', dataObj)
+          
+          `
+              : ""
+          }
         });
+
 
       }`)
         )
@@ -530,6 +553,30 @@ const autosave_answer = async (
     return { json: { success: "ok", answer_id: insres } };
   }
 };
+const completed = async (
+  table_id,
+  viewname,
+  {
+    title_field,
+    options_field,
+    answer_relation,
+    answer_field,
+    destination_url,
+    type_field,
+    fixed_type,
+    field_values_formula,
+    complete_action,
+  },
+  body,
+  { req }
+) => {
+  const table = await Table.findOne({ id: table_id });
+
+  const state = body.state;
+  const trigger = await Trigger.findOne({ name: complete_action });
+  const action_result = await trigger.runWithoutRow({ req, user: req.user });
+  return { json: { success: "ok", ...action_result } };
+};
 
 module.exports = {
   name: "Survey",
@@ -538,7 +585,7 @@ module.exports = {
   configuration_workflow,
   run,
   runPost,
-  routes: { autosave_answer },
+  routes: { autosave_answer, completed },
 };
 
 /* TO DO
