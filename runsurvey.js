@@ -378,19 +378,31 @@ const run = async (
     }),
     qs.map((q, qix) => {
       const qtype = type_field === "Fixed" ? fixed_type : q[type_field];
-      if (qtype === "Multiple choice")
+      if (qtype === "Multiple choice") {
+        const options = q[options_field].split(",").map((s) => s.trim());
         return div(
           { class: "mb-3 survey-question survey-question-mcq" },
           p({ class: "survey-question-text" }, q[title_field]),
           div(
             { class: "survey-question-body" },
-            radio_group({
-              name: `q${q[table.pk_name]}`,
-              value: existing_values[q[table.pk_name]],
-              options: q[options_field].split(",").map((s) => s.trim()),
-            })
+            options.length > 5
+              ? select(
+                  { name: `q${q[table.pk_name]}`, class: "form-select" },
+                  options.map((o) =>
+                    option(
+                      { selected: o == existing_values[q[table.pk_name]] },
+                      o
+                    )
+                  )
+                )
+              : radio_group({
+                  name: `q${q[table.pk_name]}`,
+                  value: existing_values[q[table.pk_name]],
+                  options,
+                })
           )
         );
+      }
       if (qtype === "Multiple checks")
         return div(
           { class: "mb-3 survey-question survey-question-mcc" },
@@ -479,9 +491,11 @@ const run = async (
       let ansIds = ${JSON.stringify(existing_answer_ids)}
       const qnames= ${JSON.stringify(qs.map((q) => `q${q.id}`))}
       const yesnoqs = ${JSON.stringify(yesnoqs)};
+      let completed = false
       window.change_survey_${viewname}_${rndid} = (event)=>{
         const $input = $(event.target)        
         const name = $input.attr('name')
+        if(!name) return
         let value;
         if($input.hasClass("multicheck")) {
           value = []
@@ -495,7 +509,6 @@ const run = async (
         const dataObj = {name, value, state: ${JSON.stringify(state)}}
         if(ansIds[name]) 
           dataObj.answer_id = ansIds[name];
-        
         view_post('${viewname}', 'autosave_answer', dataObj,(res)=>{
           if(res.answer_id) ansIds[name] = res.answer_id;
 
@@ -503,12 +516,14 @@ const run = async (
             complete_action
               ? `
           const complete = qnames.every(qn=>!!ansIds[qn]);
-          if(complete) 
+          if(complete && !completed) {
+            completed = true; 
             view_post('${viewname}', 'completed', {
                 state: ${JSON.stringify(state)},
                 answer_ids: Object.values(ansIds),
                 question_ids: ${JSON.stringify(qs.map((q) => q.id))}
-              })`
+              })
+            }`
               : ""
           }
         });
