@@ -18,7 +18,6 @@ const {
   p,
   text_attr,
 } = require("@saltcorn/markup/tags");
-const { radio_group } = require("@saltcorn/markup/helpers");
 
 const View = require("@saltcorn/data/models/view");
 const Workflow = require("@saltcorn/data/models/workflow");
@@ -77,6 +76,42 @@ const checkbox_group = ({
         );
       })
       .join("")
+  );
+
+//copied from saltconr markup to avoid filter in options
+const radio_group = ({
+  name,
+  options,
+  value,
+  inline,
+  form_name,
+  onChange,
+  required,
+  ...rest
+}) =>
+  div(
+    (options || []).map((o, ix) => {
+      const myvalue = typeof o === "string" ? o : o.value;
+      const id = `input${text_attr(name)}${ix}`;
+      return div(
+        { class: ["form-check", inline && "form-check-inline"] },
+        input({
+          class: ["form-check-input", rest.class],
+          type: "radio",
+          name,
+          onChange,
+          required: !!required,
+          "data-fieldname": form_name,
+          id,
+          value: text_attr(myvalue),
+          checked: myvalue === value,
+        }),
+        label(
+          { class: "form-check-label", for: id },
+          typeof o === "string" ? o : o.label
+        )
+      );
+    })
   );
 
 const configuration_workflow = () =>
@@ -238,6 +273,18 @@ const configuration_workflow = () =>
                 type: "Bool",
               },
               {
+                name: "yes_label",
+                label: "Yes label",
+                type: "String",
+                default: "Yes",
+              },
+              {
+                name: "no_label",
+                label: "No label",
+                type: "String",
+                default: "No",
+              },
+              {
                 name: "complete_action",
                 label: "Complete action",
                 sublabel:
@@ -282,6 +329,8 @@ const run = async (
     lower_field,
     upper_field,
     complete_action,
+    yes_label,
+    no_label,
   },
   state,
   extra
@@ -310,6 +359,7 @@ const run = async (
       existing_answer_ids[`q${arow[ansTableKey]}`] = arow[ansTable.pk_name];
     });
   }
+  const yesnoqs = [];
   return form(
     {
       method: "POST",
@@ -403,27 +453,24 @@ const run = async (
             })
           )
         );
-      if (qtype === "Yes/No")
+      if (qtype === "Yes/No") {
+        yesnoqs.push(`q${q[table.pk_name]}`);
         return div(
           { class: "mb-3 survey-question survey-question-yesno" },
+          p({ class: "survey-question-text" }, q[title_field]),
           div(
-            { class: "form-check form-switch" },
-            input({
-              class: "form-check-input",
+            { class: "survey-question-body" },
+            radio_group({
               name: `q${q[table.pk_name]}`,
-              type: "checkbox",
-              id: `switchCheck_${viewname}_${qix}`,
-              checked: existing_values[q[table.pk_name]] === true,
-            }),
-            label(
-              {
-                class: "form-check-label survey-question-text",
-                for: `switchCheck_${viewname}_${qix}`,
-              },
-              q[title_field]
-            )
+              value: existing_values[q[table.pk_name]],
+              options: [
+                { label: yes_label || "Yes", value: true },
+                { label: no_label || "No", value: false },
+              ],
+            })
           )
         );
+      }
     }),
     how_save === "Save button with destination"
       ? button({ type: "submit", class: "btn btn-primary" }, "Save")
@@ -431,6 +478,7 @@ const run = async (
           domReady(`
       let ansIds = ${JSON.stringify(existing_answer_ids)}
       const qnames= ${JSON.stringify(qs.map((q) => `q${q.id}`))}
+      const yesnoqs = ${JSON.stringify(yesnoqs)};
       window.change_survey_${viewname}_${rndid} = (event)=>{
         const $input = $(event.target)        
         const name = $input.attr('name')
@@ -443,6 +491,7 @@ const run = async (
         } else {
           value = $input.attr("type") ==="checkbox" ? $input.is(":checked"): $input.val()
         }
+        if(yesnoqs.includes(name)) value= value==="true";
         const dataObj = {name, value, state: ${JSON.stringify(state)}}
         if(ansIds[name]) 
           dataObj.answer_id = ansIds[name];
