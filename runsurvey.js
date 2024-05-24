@@ -332,61 +332,76 @@ const run = async (
         return div(
           { class: "mb-3 survey-question survey-question-mcq" },
           p({ class: "survey-question-text" }, q[title_field]),
-          radio_group({
-            name: `q${q[table.pk_name]}`,
-            value: existing_values[q[table.pk_name]],
-            options: q[options_field].split(",").map((s) => s.trim()),
-          })
+          div(
+            { class: "survey-question-body" },
+            radio_group({
+              name: `q${q[table.pk_name]}`,
+              value: existing_values[q[table.pk_name]],
+              options: q[options_field].split(",").map((s) => s.trim()),
+            })
+          )
         );
       if (qtype === "Multiple checks")
         return div(
           { class: "mb-3 survey-question survey-question-mcc" },
           p({ class: "survey-question-text" }, q[title_field]),
-          checkbox_group({
-            name: `q${q[table.pk_name]}`,
-            value: existing_values[q[table.pk_name]],
-            options: q[options_field].split(",").map((s) => s.trim()),
-            class: "multicheck",
-          })
+          div(
+            { class: "survey-question-body" },
+            checkbox_group({
+              name: `q${q[table.pk_name]}`,
+              value: existing_values[q[table.pk_name]],
+              options: q[options_field].split(",").map((s) => s.trim()),
+              class: "multicheck",
+            })
+          )
         );
       if (qtype === "Free text")
         return div(
           { class: "mb-3 survey-question survey-question-free-text" },
           p({ class: "survey-question-text" }, q[title_field]),
-          textarea(
-            {
-              class: "form-control",
-              name: `q${q[table.pk_name]}`,
-            },
-            existing_values[q[table.pk_name]] || ""
+          div(
+            { class: "survey-question-body" },
+            textarea(
+              {
+                class: "form-control",
+                name: `q${q[table.pk_name]}`,
+              },
+              existing_values[q[table.pk_name]] || ""
+            )
           )
         );
       if (qtype === "Integer")
         return div(
           { class: "mb-3 survey-question survey-question-int" },
           p({ class: "survey-question-text" }, q[title_field]),
-          input({
-            class: "form-control",
-            name: `q${q[table.pk_name]}`,
-            type: "number",
-            max: q[upper_field],
-            min: q[lower_field],
-            step: 1,
-            value: existing_values[q[table.pk_name]],
-          })
+          div(
+            { class: "survey-question-body" },
+            input({
+              class: "form-control",
+              name: `q${q[table.pk_name]}`,
+              type: "number",
+              max: q[upper_field],
+              min: q[lower_field],
+              step: 1,
+              value: existing_values[q[table.pk_name]],
+            })
+          )
         );
       if (qtype === "Float")
         return div(
           { class: "mb-3 survey-question survey-question-int" },
           p({ class: "survey-question-text" }, q[title_field]),
-          input({
-            class: "form-control",
-            name: `q${q[table.pk_name]}`,
-            type: "number",
-            max: q[upper_field],
-            min: q[lower_field],
-            value: existing_values[q[table.pk_name]],
-          })
+          div(
+            { class: "survey-question-body" },
+            input({
+              class: "form-control",
+              name: `q${q[table.pk_name]}`,
+              type: "number",
+              max: q[upper_field],
+              min: q[lower_field],
+              value: existing_values[q[table.pk_name]],
+            })
+          )
         );
       if (qtype === "Yes/No")
         return div(
