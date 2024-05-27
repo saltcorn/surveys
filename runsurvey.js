@@ -32,6 +32,7 @@ const {
 } = require("@saltcorn/data/models/expression");
 
 const db = require("@saltcorn/data/db");
+const { getState } = require("@saltcorn/data/db/state");
 const {
   stateFieldsToWhere,
   add_free_variables_to_joinfields,
@@ -432,6 +433,21 @@ const run = async (
             )
           )
         );
+      if (qtype === "Free HTML text") {
+        const fv = getState().types["HTML"].fieldviews.TinyMCE;
+        return div(
+          { class: "mb-3 survey-question survey-question-html-text" },
+          p({ class: "survey-question-text" }, q[title_field]),
+          div(
+            { class: "survey-question-body" },
+            fv.run(
+              `q${q[table.pk_name]}`,
+              existing_values[q[table.pk_name]] || "",
+              { toolbar: "Standard", quickbar: true, autogrow: true }
+            )
+          )
+        );
+      }
       if (qtype === "Integer")
         return div(
           { class: "mb-3 survey-question survey-question-int" },

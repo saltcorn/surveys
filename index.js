@@ -32,7 +32,7 @@ const questionType = {
           [
             "Yes/No",
             "Free text",
-            //"Free rich text",
+            "Free HTML text",
             "Multiple choice",
             "Multiple checks",
             "Integer",
@@ -47,9 +47,12 @@ const questionType = {
   },
 };
 
+const dependencies = ["@saltcorn/tinymce"];
+
 module.exports = {
   sc_plugin_api_version: 1,
   plugin_name: "surveys",
   viewtemplates: [require("./runsurvey")],
   types: [questionType],
+  dependencies,
 };
