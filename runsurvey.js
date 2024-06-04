@@ -524,12 +524,21 @@ const run = async (
       const qnames= ${JSON.stringify(qs.map((q) => `q${q.id}`))}
       const yesnoqs = ${JSON.stringify(yesnoqs)};
       let completed = false
-      const toBase64 = file => new Promise((resolve, reject) => {
+      //https://stackoverflow.com/a/52311051/19839414
+      function getBase64(file) {
+        return new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.readAsDataURL(file);
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-      });
+          reader.onload = () => {
+            let encoded = reader.result.toString().replace(/^data:(.*,)?/, '');
+            if ((encoded.length % 4) > 0) {
+              encoded += '='.repeat(4 - (encoded.length % 4));
+            }
+            resolve(encoded);
+          };
+          reader.onerror = error => reject(error);
+        });
+      }
 
       window.change_survey_${viewname}_${rndid} = async (event)=>{
         const $input = $(event.target)        
@@ -544,7 +553,7 @@ const run = async (
         } else if($input.attr("type")==="file") {
           value = [];
           for(const file of $input.prop('files')) {
-            value.push({ base64: await toBase64(file), name: file.name, type: file.type })
+            value.push({ base64: await getBase64(file), name: file.name, type: file.type })
           }
         } else {
           value = $input.attr("type") ==="checkbox" ? $input.is(":checked"): $input.val()
