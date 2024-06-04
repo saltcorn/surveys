@@ -466,21 +466,24 @@ const run = async (
             })
           )
         );
-      if (qtype === "File upload")
+      if (qtype === "File upload") {
+        const existing = existing_values[q[table.pk_name]];
         return div(
           { class: "mb-3 survey-question survey-question-files" },
           p({ class: "survey-question-text" }, q[title_field]),
           div(
             { class: "survey-question-body" },
+            Array.isArray(existing) &&
+              existing.map((f) => a({ href: `/files/serve/${f}` }, f)),
             input({
               class: "form-control",
               name: `q${q[table.pk_name]}`,
               type: "file",
               multiple: true,
-              value: existing_values[q[table.pk_name]],
             })
           )
         );
+      }
       if (qtype === "Float")
         return div(
           { class: "mb-3 survey-question survey-question-int" },
