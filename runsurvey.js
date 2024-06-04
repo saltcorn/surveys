@@ -25,6 +25,7 @@ const Table = require("@saltcorn/data/models/table");
 const Form = require("@saltcorn/data/models/form");
 const Trigger = require("@saltcorn/data/models/trigger");
 const Field = require("@saltcorn/data/models/field");
+const File = require("@saltcorn/data/models/file");
 const {
   jsexprToWhere,
   eval_expression,
@@ -667,10 +668,27 @@ const autosave_answer = async (
     extraVals = eval_expression(field_values_formula, state, req.user);
   }
   const qtype = type_field === "Fixed" ? fixed_type : qrow[type_field];
+  let answer_value;
+  if (qtype === "File upload") {
+    answer_value = [];
+    // save file
+    for (const { base64, name, type } of body.value) {
+      const file = await File.from_contents(
+        name,
+        type,
+        Buffer.from(base64, "base64"),
+        req.user?.id,
+        req.user?.role_id || 1
+      );
+      answer_value.push(file.path_to_serve);
+    }
+    answer_value = wrap(answer_value);
+    // set val to filename
+  } else answer_value = wrap(body.value);
   const new_row = {
     ...extraVals,
     [ansTableKey]: qrow[table.pk_name],
-    [answer_field]: wrap(body.value),
+    [answer_field]: answer_value,
   };
 
   if (body.answer_id) {
