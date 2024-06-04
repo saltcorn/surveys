@@ -465,6 +465,21 @@ const run = async (
             })
           )
         );
+      if (qtype === "File upload")
+        return div(
+          { class: "mb-3 survey-question survey-question-files" },
+          p({ class: "survey-question-text" }, q[title_field]),
+          div(
+            { class: "survey-question-body" },
+            input({
+              class: "form-control",
+              name: `q${q[table.pk_name]}`,
+              type: "file",
+              multiple: true,
+              value: existing_values[q[table.pk_name]],
+            })
+          )
+        );
       if (qtype === "Float")
         return div(
           { class: "mb-3 survey-question survey-question-int" },
@@ -508,7 +523,14 @@ const run = async (
       const qnames= ${JSON.stringify(qs.map((q) => `q${q.id}`))}
       const yesnoqs = ${JSON.stringify(yesnoqs)};
       let completed = false
-      window.change_survey_${viewname}_${rndid} = (event)=>{
+      const toBase64 = file => new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+      });
+
+      window.change_survey_${viewname}_${rndid} = async (event)=>{
         const $input = $(event.target)        
         const name = $input.attr('name')
         if(!name) return
@@ -518,6 +540,11 @@ const run = async (
           $('input[name="' + name + '"]:checked').each(function() {
             value.push($(this).val());
           })
+        } else if($input.attr("type")==="file") {
+          value = [];
+          for(const file of $input.prop('files')) {
+            value.push({ base64: await toBase64(file), name: file.name, type: file.type })
+          }
         } else {
           value = $input.attr("type") ==="checkbox" ? $input.is(":checked"): $input.val()
         }

@@ -37,6 +37,7 @@ const questionType = {
             "Multiple checks",
             "Integer",
             "Float",
+            "File upload",
           ].map((o) => option({ selected: v === o }, o))
         );
       },
