@@ -395,7 +395,7 @@ const run = async (
       class: `survey survey-${viewname.replaceAll(" ", "")}`,
       onChange:
         how_save === "Auto-save"
-          ? `change_survey_${viewname}_${rndid}(event)`
+          ? `change_survey_${db.sqlsanitize(viewname)}_${rndid}(event)`
           : undefined,
     },
     input({ type: "hidden", name: "_csrf", value: extra.req.csrfToken() }),
@@ -569,7 +569,9 @@ const run = async (
         });
       }
 
-      window.change_survey_${viewname}_${rndid} = async (event)=>{
+      window.change_survey_${db.sqlsanitize(
+        viewname
+      )}_${rndid} = async (event)=>{
         const $input = $(event.target)        
         const name = $input.attr('name')
         if(!name) return
