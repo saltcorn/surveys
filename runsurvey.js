@@ -190,7 +190,10 @@ const configuration_workflow = () =>
                 type: "String",
                 attributes: {
                   options: fields
-                    .filter((f) => f.type?.name === "String")
+                    .filter(
+                      (f) =>
+                        f.type?.name === "String" || f.type?.name === "JSON"
+                    )
                     .map((f) => f.name),
                 },
               },
@@ -362,6 +365,13 @@ const run = async (
     });
   }
   const yesnoqs = [];
+  const getOptions = (q) => {
+    const optVal = q[options_field];
+    const options = Array.isArray(optVal)
+      ? optVal
+      : optVal.split(",").map((s) => s.trim());
+    return options;
+  };
   return form(
     {
       method: "POST",
@@ -381,7 +391,7 @@ const run = async (
     qs.map((q, qix) => {
       const qtype = type_field === "Fixed" ? fixed_type : q[type_field];
       if (qtype === "Multiple choice") {
-        const options = q[options_field].split(",").map((s) => s.trim());
+        const options = getOptions(q);
         return div(
           { class: "mb-3 survey-question survey-question-mcq" },
           p({ class: "survey-question-text" }, q[title_field]),
@@ -414,7 +424,7 @@ const run = async (
             checkbox_group({
               name: `q${q[table.pk_name]}`,
               value: existing_values[q[table.pk_name]],
-              options: q[options_field].split(",").map((s) => s.trim()),
+              options: getOptions(q),
               class: "multicheck",
             })
           )
