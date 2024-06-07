@@ -278,6 +278,16 @@ const configuration_workflow = () =>
                 type: "Bool",
               },
               {
+                name: "existing_answer_query",
+                label: "Answers query",
+                class: "validate-expression",
+                sublabel:
+                  "Additional query when loading exisitng answers. For example <code>{user: user.id}</code>",
+                type: "String",
+                fieldview: "textarea",
+                showIf: { load_existing_answers: true },
+              },
+              {
                 name: "yes_label",
                 label: "Yes label",
                 type: "String",
@@ -331,6 +341,7 @@ const run = async (
     fixed_type,
     how_save,
     load_existing_answers,
+    existing_answer_query,
     lower_field,
     upper_field,
     complete_action,
@@ -356,7 +367,12 @@ const run = async (
     const [ansTableName, ansTableKey] = answer_relation.split(".");
     const ansTable = Table.findOne({ name: ansTableName });
     const ansField = ansTable.getField(answer_field);
+
+    const qextra = existing_answer_query
+      ? eval_expression(existing_answer_query, state, extra.req.user)
+      : {};
     const ans_rows = await ansTable.getRows({
+      ...qextra,
       [ansTableKey]: { in: qs.map((qrow) => qrow[table.pk_name]) },
     });
     ans_rows.forEach((arow) => {
