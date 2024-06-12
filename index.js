@@ -86,8 +86,8 @@ const question_configuration = {
     ];
   },
   run: (nm, v, attrs, cls, required, field) => {
-    const rndcls = `tmce${Math.floor(Math.random() * 16777215).toString(16)}`;
-    const configTableLine = (key, labelStr) =>
+    const rndcls = `qc${Math.floor(Math.random() * 16777215).toString(16)}`;
+    const configTableLine = (key, labelStr, type) =>
       tr(
         {
           class: "qtype-toggle qtype-Integer qtype-Float",
@@ -103,9 +103,10 @@ const question_configuration = {
         ),
         td(
           input({
-            type: "number",
+            type,
             name: key,
             value: v?.[key],
+            onChange: `change_qconfig_${rndcls}(this)`,
           })
         )
       );
@@ -113,32 +114,44 @@ const question_configuration = {
       { id: `qconfig${rndcls}` },
       textarea(
         {
-          type: "hidden",
-          class: "d-none",
+          class: "d-none qconfval",
           name: text_attr(nm),
           "data-fieldname": text_attr(field.name),
           id: `input${text_attr(nm)}`,
         },
-        v
+        JSON.stringify(v || {})
       ),
       table(
         tbody(
-          configTableLine("_lower_bound", "Lower bound"),
-          configTableLine("_upper_bound", "Upper bound")
+          configTableLine("_lower_bound", "Lower bound", "number"),
+          configTableLine("_upper_bound", "Upper bound", "number")
         )
       ),
       script(
         domReady(`
+    update_qconfig_${rndcls}();
+    $("#qconfig${rndcls}").closest('form[data-viewname]').on('change', update_qconfig_${rndcls})      
+        `)
+      ),
+      script(`
     function update_qconfig_${rndcls}() {
        const qtype=get_form_record($("#qconfig${rndcls}")).${attrs.type_field}
-       console.log("qtype",qtype);
        $("#qconfig${rndcls} .qtype-toggle").hide()
        $("#qconfig${rndcls} .qtype-"+qtype.replace(/ /g, "")).show()
     }
-    update_qconfig_${rndcls}();
-    $("#qconfig${rndcls}").closest('form[data-viewname]').on('change', update_qconfig_${rndcls})    
+  
+    function change_qconfig_${rndcls}() {
+       const qtype=get_form_record($("#qconfig${rndcls}")).${attrs.type_field}
+       const o = {}
+       const qs = "#qconfig${rndcls} .qtype-"+qtype.replace(/ /g, "")+" input"
+       $(qs).each(function() {
+         const $e = $(this);
+         o[$e.attr("name")] = $e.attr("type") === "number"? +$e.val() : $e.val()
+       })
+         const $t = $("#qconfig${rndcls} textarea.qconfval")
+       $t.text(JSON.stringify(o))
+    }
       `)
-      )
     );
   },
 };
