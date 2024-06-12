@@ -87,16 +87,17 @@ const question_configuration = {
   },
   run: (nm, v, attrs, cls, required, field) => {
     const rndcls = `qc${Math.floor(Math.random() * 16777215).toString(16)}`;
-    const configTableLine = (key, labelStr, type) =>
+    const configTableLine = (key, labelStr, type, qtypeClass) =>
       tr(
         {
-          class: "qtype-toggle qtype-Integer qtype-Float",
+          class: "qtype-toggle " + qtypeClass,
           style: "display: none;",
         },
         td(
           label(
             {
               for: key,
+              class: "me-2",
             },
             labelStr
           )
@@ -107,6 +108,7 @@ const question_configuration = {
             name: key,
             value: v?.[key],
             onChange: `change_qconfig_${rndcls}(this)`,
+            ...(type === "checkbox" ? { checked: !!v?.[key] } : {}),
           })
         )
       );
@@ -123,8 +125,24 @@ const question_configuration = {
       ),
       table(
         tbody(
-          configTableLine("_lower_bound", "Lower bound", "number"),
-          configTableLine("_upper_bound", "Upper bound", "number")
+          configTableLine(
+            "_lower_bound",
+            "Lower bound",
+            "number",
+            "qtype-Integer qtype-Float"
+          ),
+          configTableLine(
+            "_upper_bound",
+            "Upper bound",
+            "number",
+            "qtype-Integer qtype-Float"
+          ),
+          configTableLine(
+            "_multiple",
+            "Allow multiple",
+            "checkbox",
+            "qtype-Fileupload"
+          )
         )
       ),
       script(
@@ -137,7 +155,8 @@ const question_configuration = {
     function update_qconfig_${rndcls}() {
        const qtype=get_form_record($("#qconfig${rndcls}")).${attrs.type_field}
        $("#qconfig${rndcls} .qtype-toggle").hide()
-       $("#qconfig${rndcls} .qtype-"+qtype.replace(/ /g, "")).show()
+       const showq= "#qconfig${rndcls} .qtype-"+qtype.replace(/ /g, "")
+       $(showq).show()
     }
   
     function change_qconfig_${rndcls}() {
@@ -146,9 +165,13 @@ const question_configuration = {
        const qs = "#qconfig${rndcls} .qtype-"+qtype.replace(/ /g, "")+" input"
        $(qs).each(function() {
          const $e = $(this);
-         o[$e.attr("name")] = $e.attr("type") === "number"? +$e.val() : $e.val()
+         const val = $e.attr("type") === "number"? +$e.val() :
+           $e.attr("type") === "checkbox"? !!$e.prop('checked')         
+           : $e.val()
+         o[$e.attr("name")] = val
        })
          const $t = $("#qconfig${rndcls} textarea.qconfval")
+       console.log("set val", o)
        $t.text(JSON.stringify(o))
     }
       `)
