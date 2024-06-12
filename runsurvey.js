@@ -198,6 +198,16 @@ const configuration_workflow = () =>
                 },
               },
               {
+                name: "config_field",
+                label: "Question configuration field",
+                type: "String",
+                attributes: {
+                  options: fields
+                    .filter((f) => f.type?.name === "JSON")
+                    .map((f) => f.name),
+                },
+              },
+              {
                 name: "lower_field",
                 label: "Lower bound field",
                 sublabel:
@@ -347,6 +357,7 @@ const run = async (
     complete_action,
     yes_label,
     no_label,
+    config_field,
   },
   state,
   extra
@@ -485,8 +496,12 @@ const run = async (
               class: "form-control",
               name: `q${q[table.pk_name]}`,
               type: "number",
-              max: q[upper_field],
-              min: q[lower_field],
+              max: config_field
+                ? q[config_field]?._upper_bound
+                : q[upper_field],
+              min: config_field
+                ? q[config_field]?._lower_bound
+                : q[lower_field],
               step: 1,
               value: existing_values[q[table.pk_name]],
             })
@@ -505,7 +520,7 @@ const run = async (
               class: "form-control",
               name: `q${q[table.pk_name]}`,
               type: "file",
-              multiple: true,
+              multiple: config_field ? q[config_field]?._multiple : true,
             })
           )
         );
