@@ -6,6 +6,12 @@ const {
   script,
   domReady,
   div,
+  textarea,
+  label,
+  table,
+  tr,
+  tbody,
+  td,
 } = require("@saltcorn/markup/tags");
 const Table = require("@saltcorn/data/models/table");
 
@@ -79,16 +85,55 @@ const question_configuration = {
       },
     ];
   },
-  run: (nm, v, attrs, cls) => {
+  run: (nm, v, attrs, cls, required, field) => {
     const rndcls = `tmce${Math.floor(Math.random() * 16777215).toString(16)}`;
+    const configTableLine = (key, labelStr) =>
+      tr(
+        {
+          class: "qtype-toggle qtype-Integer qtype-Float",
+          style: "display: none;",
+        },
+        td(
+          label(
+            {
+              for: key,
+            },
+            labelStr
+          )
+        ),
+        td(
+          input({
+            type: "number",
+            name: key,
+            value: v?.[key],
+          })
+        )
+      );
     return div(
       { id: `qconfig${rndcls}` },
-      input({ type: "hidden" }),
+      textarea(
+        {
+          type: "hidden",
+          class: "d-none",
+          name: text_attr(nm),
+          "data-fieldname": text_attr(field.name),
+          id: `input${text_attr(nm)}`,
+        },
+        v
+      ),
+      table(
+        tbody(
+          configTableLine("_lower_bound", "Lower bound"),
+          configTableLine("_upper_bound", "Upper bound")
+        )
+      ),
       script(
         domReady(`
     function update_qconfig_${rndcls}() {
        const qtype=get_form_record($("#qconfig${rndcls}")).${attrs.type_field}
        console.log("qtype",qtype);
+       $("#qconfig${rndcls} .qtype-toggle").hide()
+       $("#qconfig${rndcls} .qtype-"+qtype.replace(/ /g, "")).show()
     }
     update_qconfig_${rndcls}();
     $("#qconfig${rndcls}").closest('form[data-viewname]').on('change', update_qconfig_${rndcls})    
