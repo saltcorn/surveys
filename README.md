@@ -107,8 +107,18 @@ In this case the row Values formula and the answer is query is the same. But thi
 the case. You may have a date field on the answers table. This would typically not be set in
 the answers query.
 
-#### Additional fields on questions
-
 #### Survey sets
 
-#### stepper
+You can add fields to the Questions Outside the fields required for the survey view for any
+purpose required, including:
+
+- The "correct" answer, if applicable.
+- A "weight" in any scoring system
+- A Key to a different table representing survey sections. The survey section table can then have a Show view which embeds the Survey view based on this relation.
+
+#### Stepper
+
+if you want to show one question at a time, the stepper module is useful. You Should create a
+Show View on the questions table, which embeds the survey view, such that running this show view will show a single question which the user will be able to answer.
+
+Your Show view can then either embed a PreviousOrNextLink on the same table, Which will simply be a link to the next question. Alternatively, you can create a Stepper view based on the Show view to go through the questions.
