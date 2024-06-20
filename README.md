@@ -2,6 +2,9 @@
 
 Surveys for Saltcorn
 
+Surveys questions and answers are stored in tables and users can generate new surveys without
+admin rights.
+
 ## Minimal setup
 
 The minimal setup for a survey is the following
@@ -43,12 +46,32 @@ Now, if you run this view, you will see the questions appear. When you answer on
 
 ## Extended setup
 
-Edit on questions
+By working with additional fields on the questions and answers tables, by running the survey
+view with a specific view state, and by embedding deserve a view in other views you can achieve
+extremely flexible survey workflows.
 
-Loading answers
+#### Edit on questions
 
-more fields on answers
+You should create an edit view on the questions table so that you or your users can generate new questions. If you have included a question configuration field of type JSON, You should include it here with the field view question_configuration. In the settings for this field view you should set which is the field for the question type, which should also be a field in this edit view. When running this edit view, the question configuration will dynamically update according to the question type.
 
-surveysets
+#### Survey view state
 
-stepper.
+The survey view when run Will show any questions for which the question row matches the view
+state (filter state). This means that you can use a filter on the same page, the browser
+query string, or an extra state formula or relation when embedding the survey view to control
+which questions are shown to the user.
+
+One thing you have to decide, and this module supports both modes, is whether you are going to
+reuse questions across multiple users so there will be multiple answers for each question.
+There is no setting for this, you simply have to set the view state to restrict which
+questions are run when running the survey view.
+
+#### Loading answers
+
+Sometimes you want the survey, when loaded, to be populated with previous answers in the database. Sometimes you want those to be A specific
+
+#### Additional fields on questions
+
+#### Survey sets
+
+#### stepper
