@@ -251,7 +251,7 @@ const configuration_workflow = () =>
                 type: "String",
                 required: true,
                 attributes: {
-                  options: ["Save button with destination", "Auto-save"],
+                  options: ["Auto-save" /*, "Save button with destination"*/],
                 },
               },
               // autosave or submit button
