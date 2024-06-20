@@ -61,14 +61,51 @@ state (filter state). This means that you can use a filter on the same page, the
 query string, or an extra state formula or relation when embedding the survey view to control
 which questions are shown to the user.
 
+For instance, to run a single question, set the id in the view state (`?id=X` In the browser
+URL; or `{id: X}` as an extra state formula). You could also base this on another variable to
+show more than one question that matches some criteria. For Instance if you have a String field
+on the questions table called `survey_name`, use `?survey_name=MySurvey` (URL) or
+`{survey_name: "MySurvey"}` (extra state formula).
+
 One thing you have to decide, and this module supports both modes, is whether you are going to
 reuse questions across multiple users so there will be multiple answers for each question.
 There is no setting for this, you simply have to set the view state to restrict which
 questions are run when running the survey view.
 
+Reusing Questions (multiple answers to each question, one for each user) is the
+simplest. If you are going to instead duplicate question rows so there is one question for
+each userm use an action to duplicate template question rows.
+
+#### Setting additional fields on answers
+
+You may want to fill in additional values on the answers table when the user answers a question. You can do this by filling in the row values formula in the survey view
+configuration.
+
+For instance, you could add a field called `filled_out_by` with type Key to user To the answers table. Then in the Row values formula, you write: `{filled_out_by: user.id}` (`user` here and in many other Saltorn formulas refer to the object representing the logged in user. If no user is logged in then it is `null` and this formula would generate an error - a safer formula would be `{filled_out_by: user?.id}`, using JavaScript's optional chaining).
+
+You could also set a date field on the answers table using `date: new Date()`.
+
+You can also have additional fields on the answers table which are not filled in at the time of answering the question. This can be used for instance for scoring or annotating the answer. Just make sure these fields are not required.
+
 #### Loading answers
 
-Sometimes you want the survey, when loaded, to be populated with previous answers in the database. Sometimes you want those to be A specific
+Sometimes you want the survey, when loaded, to be populated with previous answers in the database, for instance if the user returns to a partially completed survey. Sometimes you want those answers to be specific to e.g. the user.
+
+Selecting the load existing answers option in the survey view configuration will look through
+the answers table and load any existing Rose and populate the survey with those. With no
+further configuration this will display any answer that matches the current question id.
+
+If you would like to restrict the loaded answers further, First you should ensure that the
+appropriate information is written to the answers rows that are inserted upon answering a
+question. Do this by filling in the row values formula in the survey configuration; see above.
+
+You should check that the answers are filled in with the new fields set. If this is the case
+then to load these answers restricted to the Key to user field, you Enter the same formula in
+the "Answers query" setting in the survey view: `{filled_out_by: user?.id}`.
+
+In this case the row Values formula and the answer is query is the same. But this is not always
+the case. You may have a date field on the answers table. This would typically not be set in
+the answers query.
 
 #### Additional fields on questions
 
