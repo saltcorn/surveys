@@ -340,37 +340,27 @@ const run = async (
     config_field,
   },
   state,
-  extra
+  extra,
+  queriesObj
 ) => {
   // what questions are in state?
+  const { qs, existing_values, existing_answer_ids } =
+    queriesObj?.question_answers_query
+      ? await queriesObj.question_answers_query(state)
+      : await getQuestionAnswersImpl(
+          table_id,
+          {
+            order_field,
+            answer_relation,
+            existing_answer_query,
+            load_existing_answers,
+            answer_field,
+          },
+          state,
+          extra.req
+        );
   const table = await Table.findOne({ id: table_id });
-  const fields = table.fields;
-  readState(state, fields);
-  const where = await stateFieldsToWhere({ fields, state, table });
-  const qs = await table.getRows(
-    where,
-    order_field ? { orderBy: order_field } : {}
-  );
   const rndid = Math.round(Math.random() * 100000);
-  const existing_values = {};
-  const existing_answer_ids = {};
-  if (load_existing_answers) {
-    const [ansTableName, ansTableKey] = answer_relation.split(".");
-    const ansTable = Table.findOne({ name: ansTableName });
-    const ansField = ansTable.getField(answer_field);
-
-    const qextra = existing_answer_query
-      ? eval_expression(existing_answer_query, state, extra.req.user)
-      : {};
-    const ans_rows = await ansTable.getRows({
-      ...qextra,
-      [ansTableKey]: { in: qs.map((qrow) => qrow[table.pk_name]) },
-    });
-    ans_rows.forEach((arow) => {
-      existing_values[arow[ansTableKey]] = arow[answer_field];
-      existing_answer_ids[`q${arow[ansTableKey]}`] = arow[ansTable.pk_name];
-    });
-  }
   const yesnoqs = [];
   const getOptions = (q) => {
     const optVal = q[options_field];
@@ -617,20 +607,139 @@ const runPost = async (
   table_id,
   viewname,
   {
-    title_field,
-    options_field,
     answer_relation,
     answer_field,
+    type_field,
+    fixed_type,
+    field_values_formula,
     destination_url,
+  },
+  _state,
+  body,
+  { res },
+  queriesObj
+) => {
+  if (queriesObj?.run_post_query) await queriesObj.run_post_query(_state, body);
+  else
+    await runPostImpl(
+      table_id,
+      {
+        answer_relation,
+        answer_field,
+        type_field,
+        fixed_type,
+        field_values_formula,
+      },
+      _state,
+      body,
+      req
+    );
+  res.redirect(destination_url);
+};
+
+//whole column has been moved
+const autosave_answer = async (
+  table_id,
+  viewname,
+  {
+    answer_relation,
+    answer_field,
+    type_field,
+    fixed_type,
+    field_values_formula,
+  },
+  body,
+  { req },
+  queriesObj
+) => {
+  return queriesObj?.autosave_answer_query
+    ? await queriesObj.autosave_answer_query(body)
+    : await autoSaveAnswerImpl(
+        table_id,
+        {
+          answer_relation,
+          answer_field,
+          type_field,
+          fixed_type,
+          field_values_formula,
+        },
+        body,
+        req
+      );
+};
+const completed = async (
+  table_id,
+  viewname,
+  { answer_relation, complete_action },
+  body,
+  { req },
+  queriesObj
+) => {
+  if (queriesObj?.completed_query)
+    return await queriesObj.completed_query(body);
+  else
+    return await completedImpl(
+      table_id,
+      { answer_relation, complete_action },
+      body,
+      req
+    );
+};
+
+const getQuestionAnswersImpl = async (
+  table_id,
+  {
+    order_field,
+    answer_relation,
+    existing_answer_query,
+    load_existing_answers,
+    answer_field,
+  },
+  state,
+  req
+) => {
+  const table = await Table.findOne({ id: table_id });
+  const fields = table.fields;
+  readState(state, fields);
+  const where = await stateFieldsToWhere({ fields, state, table });
+  const qs = await table.getRows(
+    where,
+    order_field ? { orderBy: order_field } : {}
+  );
+  const existing_values = {};
+  const existing_answer_ids = {};
+  if (load_existing_answers) {
+    const [ansTableName, ansTableKey] = answer_relation.split(".");
+    const ansTable = Table.findOne({ name: ansTableName });
+    const ansField = ansTable.getField(answer_field);
+
+    const qextra = existing_answer_query
+      ? eval_expression(existing_answer_query, state, req.user)
+      : {};
+    const ans_rows = await ansTable.getRows({
+      ...qextra,
+      [ansTableKey]: { in: qs.map((qrow) => qrow[table.pk_name]) }, // sqlite
+    });
+    ans_rows.forEach((arow) => {
+      existing_values[arow[ansTableKey]] = arow[answer_field];
+      existing_answer_ids[`q${arow[ansTableKey]}`] = arow[ansTable.pk_name];
+    });
+  }
+  return { qs, existing_values, existing_answer_ids };
+};
+
+const runPostImpl = async (
+  table_id,
+  {
+    answer_relation,
+    answer_field,
     type_field,
     fixed_type,
     field_values_formula,
   },
   _state,
   body,
-  { res, req, redirect },
-  queries,
-  remote
+  req
 ) => {
   const table = Table.findOne({ id: table_id });
   const fields = table.getFields();
@@ -665,26 +774,46 @@ const runPost = async (
       req.user
     );
   }
-
-  res.redirect(destination_url);
 };
 
-//whole column has been moved
-const autosave_answer = async (
+const completedImpl = async (
   table_id,
-  viewname,
+  { answer_relation, complete_action },
+  body,
+  req
+) => {
+  const table = await Table.findOne({ id: table_id });
+  const questions = await table.getRows({
+    [table.pk_name]: { in: body.question_ids }, // sqlite
+  });
+  const [ansTableName, ansTableKey] = answer_relation.split(".");
+  const ansTable = Table.findOne({ name: ansTableName });
+  const answers = await ansTable.getRows({
+    [ansTable.pk_name]: { in: body.answer_ids },
+  });
+  const state = body.state;
+  const trigger = await Trigger.findOne({ name: complete_action });
+  const action_result = await trigger.runWithoutRow({
+    req,
+    user: req.user,
+    questions,
+    answers,
+    state,
+  });
+  return { json: { success: "ok", ...action_result } };
+};
+
+const autoSaveAnswerImpl = async (
+  table_id,
   {
-    title_field,
-    options_field,
     answer_relation,
     answer_field,
-    destination_url,
     type_field,
     fixed_type,
     field_values_formula,
   },
   body,
-  { req }
+  req
 ) => {
   const table = await Table.findOne({ id: table_id });
   const qid = +body.name.substring(1);
@@ -734,43 +863,6 @@ const autosave_answer = async (
     return { json: { success: "ok", answer_id: insres } };
   }
 };
-const completed = async (
-  table_id,
-  viewname,
-  {
-    title_field,
-    options_field,
-    answer_relation,
-    answer_field,
-    destination_url,
-    type_field,
-    fixed_type,
-    field_values_formula,
-    complete_action,
-  },
-  body,
-  { req }
-) => {
-  const table = await Table.findOne({ id: table_id });
-  const questions = await table.getRows({
-    [table.pk_name]: { in: body.question_ids },
-  });
-  const [ansTableName, ansTableKey] = answer_relation.split(".");
-  const ansTable = Table.findOne({ name: ansTableName });
-  const answers = await ansTable.getRows({
-    [ansTable.pk_name]: { in: body.answer_ids },
-  });
-  const state = body.state;
-  const trigger = await Trigger.findOne({ name: complete_action });
-  const action_result = await trigger.runWithoutRow({
-    req,
-    user: req.user,
-    questions,
-    answers,
-    state,
-  });
-  return { json: { success: "ok", ...action_result } };
-};
 
 module.exports = {
   name: "Survey",
@@ -780,6 +872,73 @@ module.exports = {
   run,
   runPost,
   routes: { autosave_answer, completed },
+  queries: ({
+    table_id,
+    configuration: {
+      order_field,
+      answer_relation,
+      existing_answer_query,
+      load_existing_answers,
+      answer_field,
+      type_field,
+      fixed_type,
+      field_values_formula,
+      complete_action,
+    },
+    req,
+  }) => ({
+    question_answers_query: async (state) => {
+      return await getQuestionAnswersImpl(
+        table_id,
+        {
+          order_field,
+          answer_relation,
+          existing_answer_query,
+          load_existing_answers,
+          answer_field,
+        },
+        state,
+        req
+      );
+    },
+    run_post_query: async (state, body) => {
+      return await runPostImpl(
+        table_id,
+        {
+          answer_relation,
+          answer_field,
+          type_field,
+          fixed_type,
+          field_values_formula,
+        },
+        state,
+        body,
+        req
+      );
+    },
+    completed_query: async (body) => {
+      return await completedImpl(
+        table_id,
+        { answer_relation, complete_action },
+        body,
+        req
+      );
+    },
+    autosave_answer_query: async (body) => {
+      return await autoSaveAnswerImpl(
+        table_id,
+        {
+          answer_relation,
+          answer_field,
+          type_field,
+          fixed_type,
+          field_values_formula,
+        },
+        body,
+        req
+      );
+    },
+  }),
 };
 
 /* TO DO
