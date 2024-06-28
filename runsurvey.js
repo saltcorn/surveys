@@ -42,6 +42,8 @@ const {
 } = require("@saltcorn/data/plugin-helper");
 const { features } = require("@saltcorn/data/db/state");
 
+const isNode = typeof window === "undefined";
+
 const checkbox_group = ({
   name,
   options,
@@ -399,7 +401,7 @@ const run = async (
                   { name: `q${q[table.pk_name]}`, class: "form-select" },
                   options.map((o) =>
                     option(
-                      { selected: o == existing_values[q[table.pk_name]] },
+                      { selected: o == existing_values[q[table.pk_name]] }, // TODO check
                       o
                     )
                   )
@@ -485,7 +487,16 @@ const run = async (
           div(
             { class: "survey-question-body" },
             Array.isArray(existing) &&
-              existing.map((f) => a({ href: `/files/serve/${f}` }, f)),
+              existing.map((f) =>
+                a(
+                  {
+                    href: isNode
+                      ? `/files/serve/${f}`
+                      : `javascript:openFile('${f}')`,
+                  },
+                  f
+                )
+              ),
             input({
               class: "form-control",
               name: `q${q[table.pk_name]}`,
@@ -520,7 +531,7 @@ const run = async (
             { class: "survey-question-body" },
             radio_group({
               name: `q${q[table.pk_name]}`,
-              value: existing_values[q[table.pk_name]],
+              value: !!existing_values[q[table.pk_name]],
               options: [
                 { label: yes_label || "Yes", value: true },
                 { label: no_label || "No", value: false },
@@ -716,10 +727,17 @@ const getQuestionAnswersImpl = async (
     const qextra = existing_answer_query
       ? eval_expression(existing_answer_query, state, req.user)
       : {};
-    const ans_rows = await ansTable.getRows({
-      ...qextra,
-      [ansTableKey]: { in: qs.map((qrow) => qrow[table.pk_name]) }, // sqlite
-    });
+    const qsIds = qs.map((qrow) => qrow[table.pk_name]);
+    const ans_rows = !db.isSQLite
+      ? await ansTable.getRows({
+          ...qextra,
+          [ansTableKey]: { in: qs.map((qrow) => qrow[table.pk_name]) },
+        })
+      : (
+          await ansTable.getRows({
+            ...qextra,
+          })
+        ).filter((row) => qsIds.includes(row[ansTableKey]));
     ans_rows.forEach((arow) => {
       existing_values[arow[ansTableKey]] = arow[answer_field];
       existing_answer_ids[`q${arow[ansTableKey]}`] = arow[ansTable.pk_name];
@@ -783,16 +801,25 @@ const completedImpl = async (
   req
 ) => {
   const table = await Table.findOne({ id: table_id });
-  const questions = await table.getRows({
-    [table.pk_name]: { in: body.question_ids }, // sqlite
-  });
+  const questions = !db.isSQLite
+    ? await table.getRows({
+        [table.pk_name]: { in: body.question_ids },
+      })
+    : (await table.getRows()).filter((row) =>
+        body.question_ids.includes(row[table.pk_name])
+      );
   const [ansTableName, ansTableKey] = answer_relation.split(".");
   const ansTable = Table.findOne({ name: ansTableName });
-  const answers = await ansTable.getRows({
-    [ansTable.pk_name]: { in: body.answer_ids },
-  });
+  const answers = !body.isSQLite
+    ? await ansTable.getRows({
+        [ansTable.pk_name]: { in: body.answer_ids },
+      })
+    : (await ansTable.getRows()).filter((row) =>
+        body.answer_ids.includes(row[ansTable.pk_name])
+      );
   const state = body.state;
   const trigger = await Trigger.findOne({ name: complete_action });
+
   const action_result = await trigger.runWithoutRow({
     req,
     user: req.user,
@@ -840,7 +867,7 @@ const autoSaveAnswerImpl = async (
       const file = await File.from_contents(
         name,
         type,
-        Buffer.from(base64, "base64"),
+        require("buffer/").Buffer.from(base64, "base64"),
         req.user?.id,
         req.user?.role_id || 1
       );
