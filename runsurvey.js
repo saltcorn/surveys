@@ -398,10 +398,17 @@ const run = async (
             { class: "survey-question-body" },
             options.length > 5
               ? select(
-                  { name: `q${q[table.pk_name]}`, class: "form-select" },
+                  {
+                    name: `q${q[table.pk_name]}`,
+                    class: "form-select",
+                    multiple: true,
+                    size: 5,
+                  },
                   options.map((o) =>
                     option(
-                      { selected: o == existing_values[q[table.pk_name]] }, // TODO check
+                      {
+                        selected: existing_values[q[table.pk_name]].includes(o),
+                      },
                       o
                     )
                   )
