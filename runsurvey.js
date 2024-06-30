@@ -404,14 +404,18 @@ const run = async (
                     multiple: true,
                     size: 5,
                   },
-                  options.map((o) =>
-                    option(
+                  options.map((o) => {
+                    const value = existing_values[q[table.pk_name]];
+                    return option(
                       {
-                        selected: existing_values[q[table.pk_name]].includes(o),
+                        selected:
+                          value && Array.isArray(value)
+                            ? value.includes(o)
+                            : o === value,
                       },
                       o
-                    )
-                  )
+                    );
+                  })
                 )
               : radio_group({
                   name: `q${q[table.pk_name]}`,
