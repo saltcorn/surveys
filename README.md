@@ -92,7 +92,7 @@ You can also have additional fields on the answers table which are not filled in
 Sometimes you want the survey, when loaded, to be populated with previous answers in the database, for instance if the user returns to a partially completed survey. Sometimes you want those answers to be specific to e.g. the user.
 
 Selecting the load existing answers option in the survey view configuration will look through
-the answers table and load any existing Rose and populate the survey with those. With no
+the answers table and load any existing Rows and populate the survey with those. With no
 further configuration this will display any answer that matches the current question id.
 
 If you would like to restrict the loaded answers further, First you should ensure that the
