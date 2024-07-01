@@ -535,6 +535,7 @@ const run = async (
         );
       if (qtype === "Yes/No") {
         yesnoqs.push(`q${q[table.pk_name]}`);
+        const existing = existing_values[q[table.pk_name]];
         return div(
           { class: "mb-3 survey-question survey-question-yesno" },
           p({ class: "survey-question-text" }, q[title_field]),
@@ -542,7 +543,7 @@ const run = async (
             { class: "survey-question-body" },
             radio_group({
               name: `q${q[table.pk_name]}`,
-              value: !!existing_values[q[table.pk_name]],
+              value: existing !== undefined ? !!existing : existing,
               options: [
                 { label: yes_label || "Yes", value: true },
                 { label: no_label || "No", value: false },
