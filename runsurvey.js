@@ -26,6 +26,7 @@ const Form = require("@saltcorn/data/models/form");
 const Trigger = require("@saltcorn/data/models/trigger");
 const Field = require("@saltcorn/data/models/field");
 const File = require("@saltcorn/data/models/file");
+const User = require("@saltcorn/data/models/user");
 const {
   jsexprToWhere,
   eval_expression,
@@ -149,6 +150,10 @@ const configuration_workflow = () =>
             .map((f) => f.name);
 
           const triggers = await Trigger.find({});
+          const dirs = File.allDirectories ? await File.allDirectories() : null;
+          const folderOpts = dirs.map((d) => d.path_to_serve);
+          const roles = await User.get_roles();
+
           return new Form({
             blurb: "Survey fields and answer relation",
             fields: [
@@ -290,6 +295,21 @@ const configuration_workflow = () =>
                 label: "No label",
                 type: "String",
                 default: "No",
+              },
+              {
+                name: "folder",
+                label: "Folder for uploaded files",
+                type: "String",
+                attributes: {
+                  options: folderOpts,
+                },
+              },
+              {
+                name: "min_role_read",
+                label: "Role read files",
+                sub_label: "Minimum role to read files",
+                input_type: "select",
+                options: roles.map((r) => ({ value: r.id, label: r.role })),
               },
               {
                 name: "complete_action",
@@ -664,31 +684,14 @@ const runPost = async (
 const autosave_answer = async (
   table_id,
   viewname,
-  {
-    answer_relation,
-    answer_field,
-    type_field,
-    fixed_type,
-    field_values_formula,
-  },
+  config,
   body,
   { req },
   queriesObj
 ) => {
   return queriesObj?.autosave_answer_query
     ? await queriesObj.autosave_answer_query(body)
-    : await autoSaveAnswerImpl(
-        table_id,
-        {
-          answer_relation,
-          answer_field,
-          type_field,
-          fixed_type,
-          field_values_formula,
-        },
-        body,
-        req
-      );
+    : await autoSaveAnswerImpl(table_id, config, body, req);
 };
 const completed = async (
   table_id,
@@ -850,6 +853,8 @@ const autoSaveAnswerImpl = async (
     type_field,
     fixed_type,
     field_values_formula,
+    folder,
+    min_role_read,
   },
   body,
   req
@@ -876,12 +881,14 @@ const autoSaveAnswerImpl = async (
     answer_value = [];
     // save file
     for (const { base64, name, type } of body.value) {
+      console.log("file answer", { name, type, folder, min_role_read });
       const file = await File.from_contents(
         name,
         type,
         require("buffer/").Buffer.from(base64, "base64"),
         req.user?.id,
-        req.user?.role_id || 1
+        min_role_read || req.user?.role_id || 1,
+        folder || ""
       );
       answer_value.push(file.path_to_serve);
     }
@@ -911,71 +918,18 @@ module.exports = {
   run,
   runPost,
   routes: { autosave_answer, completed },
-  queries: ({
-    table_id,
-    configuration: {
-      order_field,
-      answer_relation,
-      existing_answer_query,
-      load_existing_answers,
-      answer_field,
-      type_field,
-      fixed_type,
-      field_values_formula,
-      complete_action,
-    },
-    req,
-  }) => ({
+  queries: ({ table_id, configuration, req }) => ({
     question_answers_query: async (state) => {
-      return await getQuestionAnswersImpl(
-        table_id,
-        {
-          order_field,
-          answer_relation,
-          existing_answer_query,
-          load_existing_answers,
-          answer_field,
-        },
-        state,
-        req
-      );
+      return await getQuestionAnswersImpl(table_id, configuration, state, req);
     },
     run_post_query: async (state, body) => {
-      return await runPostImpl(
-        table_id,
-        {
-          answer_relation,
-          answer_field,
-          type_field,
-          fixed_type,
-          field_values_formula,
-        },
-        state,
-        body,
-        req
-      );
+      return await runPostImpl(table_id, configuration, state, body, req);
     },
     completed_query: async (body) => {
-      return await completedImpl(
-        table_id,
-        { answer_relation, complete_action },
-        body,
-        req
-      );
+      return await completedImpl(table_id, configuration, body, req);
     },
     autosave_answer_query: async (body) => {
-      return await autoSaveAnswerImpl(
-        table_id,
-        {
-          answer_relation,
-          answer_field,
-          type_field,
-          fixed_type,
-          field_values_formula,
-        },
-        body,
-        req
-      );
+      return await autoSaveAnswerImpl(table_id, configuration, body, req);
     },
   }),
 };
