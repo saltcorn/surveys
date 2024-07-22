@@ -639,7 +639,7 @@ const runPost = async (
   },
   _state,
   body,
-  { res },
+  { res, req },
   queriesObj
 ) => {
   if (queriesObj?.run_post_query) await queriesObj.run_post_query(_state, body);
