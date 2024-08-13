@@ -610,6 +610,20 @@ const run = async (
             value.push($(this).val());
           })
         } else if($input.attr("type")==="file") {
+          if (
+            typeof window !== "undefined" &&
+            parent.saltcorn?.data.state.getState()?.mobileConfig?.isOfflineMode) {
+          } {
+            parent.showAlerts([
+              {
+                type: "warning",
+                msg: "File upload is disabled in offline mode",
+              },
+            ]);
+            // stop form submission
+            event.preventDefault();
+            return;
+          }
           value = [];
           for(const file of $input.prop('files')) {
             value.push({ base64: await getBase64(file), name: file.name, type: file.type })

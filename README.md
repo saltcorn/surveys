@@ -122,3 +122,14 @@ if you want to show one question at a time, the stepper module is useful. You Sh
 Show View on the questions table, which embeds the survey view, such that running this show view will show a single question which the user will be able to answer.
 
 Your Show view can then either embed a PreviousOrNextLink on the same table, Which will simply be a link to the next question. Alternatively, you can create a Stepper view based on the Show view to go through the questions.
+
+#### Mobile offline sync
+
+To collect survey data in your mobile app without an internet connection, enable the offline mode feature. Here's how:
+
+- In the builder dialog, activate the 'Allow offline mode' option.
+- Go to the 'Table Synchronization' selector and choose the relevant question/answer tables.
+- If the tables do not appear in the selector, open the tables editor and ensure the 'Sync information' checkbox is checked.
+
+This will allow your app to save survey data locally, and sync it up when an internet connection is available again.
+Note: Files are not supported in offline mode.
