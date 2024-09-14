@@ -908,6 +908,13 @@ const autoSaveAnswerImpl = async (
     }
     answer_value = wrap(answer_value);
     // set val to filename
+  } else if (
+    ansField.type.name === "JSON" &&
+    features?.stringify_json_fields &&
+    (qtype === "Integer" || qtype === "Float") &&
+    body.value
+  ) {
+    answer_value = +body.value;
   } else answer_value = wrap(body.value);
   const new_row = {
     ...extraVals,
