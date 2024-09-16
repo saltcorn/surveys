@@ -510,6 +510,46 @@ const run = async (
             })
           )
         );
+      if (qtype === "Columns multiple choice") {
+        console.log({ q, options_field });
+        return div(
+          { class: "mb-3 survey-question survey-question-colmulti" },
+          p({ class: "survey-question-text" }, q[title_field]),
+          div(
+            { class: "survey-question-body" },
+            div(
+              { class: "d-flex" },
+              q[config_field]?._columns.split(",").map((c) =>
+                div(
+                  { class: "border" },
+                  div(c.trim()),
+                  div(
+                    { class: "d-flex" },
+                    getOptions(q).map((o) =>
+                      div(
+                        { class: ["form-check", "form-check-inline"] },
+                        input({
+                          class: ["form-check-input"],
+                          type: "checkbox",
+                          name: `q${q[table.pk_name]}`,
+
+                          /*"data-fieldname": form_name,
+                        id,
+                        value: text_attr(myvalue),
+                        checked: Array.isArray(value)
+                          ? value.includes(myvalue)
+                          : myvalue === value,*/
+                        }),
+                        label({ class: "form-check-label", for: null }, o)
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        );
+      }
       if (qtype === "File upload") {
         const existing = existing_values[q[table.pk_name]];
         return div(

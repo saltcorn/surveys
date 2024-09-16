@@ -53,6 +53,7 @@ const questionType = {
             "Integer",
             "Float",
             "File upload",
+            "Columns multiple choice",
           ].map((o) => option({ selected: v === o }, o))
         );
       },
@@ -142,6 +143,18 @@ const question_configuration = {
             "Allow multiple",
             "checkbox",
             "qtype-Fileupload"
+          ),
+          configTableLine(
+            "_columns",
+            "Columns (comma separated)",
+            "text",
+            "qtype-Columnsmultiplechoice"
+          ),
+          configTableLine(
+            "_multiple",
+            "Allow multiple selections",
+            "checkbox",
+            "qtype-Columnsmultiplechoice"
           )
         )
       ),
@@ -155,14 +168,14 @@ const question_configuration = {
     function update_qconfig_${rndcls}() {
        const qtype=get_form_record($("#qconfig${rndcls}")).${attrs.type_field}
        $("#qconfig${rndcls} .qtype-toggle").hide()
-       const showq= "#qconfig${rndcls} .qtype-"+qtype.replace(/ /g, "")
+       const showq= "#qconfig${rndcls} .qtype-"+qtype.replace(/ /g, "").replace("/", "")
        $(showq).show()
     }
   
     function change_qconfig_${rndcls}() {
        const qtype=get_form_record($("#qconfig${rndcls}")).${attrs.type_field}
        const o = {}
-       const qs = "#qconfig${rndcls} .qtype-"+qtype.replace(/ /g, "")+" input"
+       const qs = "#qconfig${rndcls} .qtype-"+qtype.replace(/ /g, "").replace("/", "")+" input"
        $(qs).each(function() {
          const $e = $(this);
          const val = $e.attr("type") === "number"? +$e.val() :
