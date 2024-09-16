@@ -510,8 +510,7 @@ const run = async (
             })
           )
         );
-      if (qtype === "Columns multiple choice") {
-        console.log({ q, options_field });
+      if (qtype === "Columns multiple choice")
         return div(
           { class: "mb-3 survey-question survey-question-colmulti" },
           p({ class: "survey-question-text" }, q[title_field]),
@@ -556,7 +555,7 @@ const run = async (
             )
           )
         );
-      }
+
       if (qtype === "File upload") {
         const existing = existing_values[q[table.pk_name]];
         return div(
@@ -680,10 +679,10 @@ const run = async (
         }
         if(yesnoqs.includes(name)) value= value==="true";
         const dataObj = {name, value, state: ${JSON.stringify(state)}}
-        if(ansIds[name]) 
-          dataObj.answer_id = ansIds[name];
+        if(ansIds[name.split("_")[0]]) 
+          dataObj.answer_id = ansIds[name.split("_")[0]];
         view_post('${viewname}', 'autosave_answer', dataObj,(res)=>{
-          if(res.answer_id) ansIds[name] = res.answer_id;
+          if(res.answer_id) ansIds[name.split("_")[0]] = res.answer_id;
 
           ${
             complete_action
@@ -916,12 +915,14 @@ const autoSaveAnswerImpl = async (
     field_values_formula,
     folder,
     min_role_read,
+    config_field,
+    options_field,
   },
   body,
   req
 ) => {
   const table = await Table.findOne({ id: table_id });
-  const qid = +body.name.substring(1);
+  const qid = +body.name.substring(1).split("_")[0];
   const qrow = await table.getRow({ [table.pk_name]: qid });
   const [ansTableName, ansTableKey] = answer_relation.split(".");
   const state = body.state;
@@ -938,11 +939,37 @@ const autoSaveAnswerImpl = async (
   }
   const qtype = type_field === "Fixed" ? fixed_type : qrow[type_field];
   let answer_value;
-  if (qtype === "File upload") {
+  if (qtype === "Columns multiple choice") {
+    if (body.answer_id) {
+      const cur_row = await ansTable.getRow({
+        [ansTable.pk_name]: body.answer_id,
+      });
+      answer_value = cur_row[answer_field];
+    } else answer_value = {};
+
+    const optVal = qrow[options_field];
+    const options = Array.isArray(optVal)
+      ? optVal
+      : optVal.split(",").map((s) => s.trim());
+
+    qrow[config_field]?._columns
+      .split(",")
+      .map((c) => c.trim())
+      .forEach((col) => {
+        options.forEach((o) => {
+          if (body.name === `q${qrow[table.pk_name]}_${col}_${o}`) {
+            if (body.value)
+              answer_value[col] = [
+                ...new Set([...(answer_value[col] || []), o]),
+              ];
+            else answer_value[col] = answer_value[col].filter((v) => v != o);
+          }
+        });
+      });
+  } else if (qtype === "File upload") {
     answer_value = [];
     // save file
     for (const { base64, name, type } of body.value) {
-      console.log("file answer", { name, type, folder, min_role_read });
       const file = await File.from_contents(
         name,
         type,
