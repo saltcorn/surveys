@@ -39,8 +39,8 @@ const questionType = {
             "data-fieldname": text_attr(field.name),
             id: `input${text_attr(nm)}`,
             disabled: attrs.disabled,
-            onChange: attrs.onChange,
-            onBlur: attrs.onChange,
+            onChange: (attrs.onChange || "") + "update_qconfig(this)",
+            onBlur: (attrs.onChange || "") + "update_qconfig(this)",
             autocomplete: "off",
             required: required,
           },
@@ -114,7 +114,7 @@ const question_configuration = {
         )
       );
     return div(
-      { class: `qconfig${rndcls}` },
+      { class: `qconfig${rndcls} qconfig-fv` },
       textarea(
         {
           class: "d-none qconfval",
@@ -160,20 +160,21 @@ const question_configuration = {
       ),
       script(
         domReady(`
-    update_qconfig_${rndcls}();
-    $(".qconfig${rndcls}").closest('form[data-viewname]').on('change', update_qconfig_${rndcls})      
+    update_qconfig();
+    $(".qconfig${rndcls}").closest('form[data-viewname]').on('change', update_qconfig)      
         `)
       ),
       script(`
-    function update_qconfig_${rndcls}(ev) {
-       //console.log("update qconf", that)
-       const $el = ev ? $(ev.target) : $(".qconfig${rndcls}")
-       const qtype=get_form_record($el).${attrs.type_field}
-       $el.find(".qtype-toggle").hide()
-       const showq= ".qtype-"+qtype.replace(/ /g, "").replace("/", "")
-       $el.find(showq).show()
-    }
-  
+         function update_qconfig(ev) {
+         //console.log("update qconf", ev)
+         const $el0 = ev ? (ev.target ? $(ev.target) : $(ev)) : $(".qconfig-fv")
+         const $el = $el0.closest('.form-namespace');
+         const qtype=get_form_record($el0).${attrs.type_field}
+         //console.log("qrtype", qtype)
+         $el.find(".qtype-toggle").hide()
+         const showq= ".qtype-toggle.qtype-"+qtype.replace(/ /g, "").replace("/", "")
+         $el.find(showq).show()
+      }
     function change_qconfig_${rndcls}(el) {
          //console.log("change qconf", ev)
        const $el = $(el).closest(".qconfig${rndcls}")
