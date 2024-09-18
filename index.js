@@ -114,7 +114,7 @@ const question_configuration = {
         )
       );
     return div(
-      { id: `qconfig${rndcls}` },
+      { class: `qconfig${rndcls}` },
       textarea(
         {
           class: "d-none qconfval",
@@ -161,29 +161,33 @@ const question_configuration = {
       script(
         domReady(`
     update_qconfig_${rndcls}();
-    $("#qconfig${rndcls}").closest('form[data-viewname]').on('change', update_qconfig_${rndcls})      
+    $(".qconfig${rndcls}").closest('form[data-viewname]').on('change', update_qconfig_${rndcls})      
         `)
       ),
       script(`
-    function update_qconfig_${rndcls}() {
-       const qtype=get_form_record($("#qconfig${rndcls}")).${attrs.type_field}
-       $("#qconfig${rndcls} .qtype-toggle").hide()
-       const showq= "#qconfig${rndcls} .qtype-"+qtype.replace(/ /g, "").replace("/", "")
-       $(showq).show()
+    function update_qconfig_${rndcls}(ev) {
+       //console.log("update qconf", that)
+       const $el = ev ? $(ev.target) : $(".qconfig${rndcls}")
+       const qtype=get_form_record($el).${attrs.type_field}
+       $el.find(".qtype-toggle").hide()
+       const showq= ".qtype-"+qtype.replace(/ /g, "").replace("/", "")
+       $el.find(showq).show()
     }
   
-    function change_qconfig_${rndcls}() {
-       const qtype=get_form_record($("#qconfig${rndcls}")).${attrs.type_field}
+    function change_qconfig_${rndcls}(el) {
+         //console.log("change qconf", ev)
+       const $el = $(el).closest(".qconfig${rndcls}")
+       const qtype=get_form_record($el).${attrs.type_field}
        const o = {}
-       const qs = "#qconfig${rndcls} .qtype-"+qtype.replace(/ /g, "").replace("/", "")+" input"
-       $(qs).each(function() {
+       const qs = ".qtype-"+qtype.replace(/ /g, "").replace("/", "")+" input"
+       $el.find(qs).each(function() {
          const $e = $(this);
          const val = $e.attr("type") === "number"? +$e.val() :
            $e.attr("type") === "checkbox"? !!$e.prop('checked')         
            : $e.val()
          o[$e.attr("name")] = val
        })
-         const $t = $("#qconfig${rndcls} textarea.qconfval")
+         const $t = $el.find("textarea.qconfval")
        console.log("set val", o)
        $t.text(JSON.stringify(o))
     }
