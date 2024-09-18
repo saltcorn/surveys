@@ -388,7 +388,7 @@ const run = async (
     const optVal = q[options_field];
     const options = Array.isArray(optVal)
       ? optVal
-      : optVal.split(",").map((s) => s.trim());
+      : (optVal || "").split(",").map((s) => s.trim());
     return options;
   };
   return form(
@@ -518,7 +518,7 @@ const run = async (
             { class: "survey-question-body" },
             div(
               { class: "d-flex" },
-              q[config_field]?._columns
+              (q[config_field]?._columns || "")
                 .split(",")
                 .map((c) => c.trim())
                 .map((col) =>
