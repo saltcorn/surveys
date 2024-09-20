@@ -658,8 +658,7 @@ const run = async (
         } else if($input.attr("type")==="file") {
           if (
             typeof window !== "undefined" &&
-            parent.saltcorn?.data.state.getState()?.mobileConfig?.isOfflineMode) {
-          } {
+            parent.saltcorn?.data.state.getState()?.mobileConfig?.isOfflineMode) {          
             parent.showAlerts([
               {
                 type: "warning",
