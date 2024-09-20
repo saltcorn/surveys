@@ -161,12 +161,12 @@ const question_configuration = {
       script(
         domReady(`
     update_qconfig();
-    $(".qconfig${rndcls}").closest('form[data-viewname]').on('change', update_qconfig)      
+    //$(".qconfig${rndcls}").closest('form[data-viewname]').on('change', update_qconfig)      
         `)
       ),
       script(`
          function update_qconfig(ev) {
-         //console.log("update qconf", ev)
+         console.log("update qconf ev ", ev)
          const $el0 = ev ? (ev.target ? $(ev.target) : $(ev)) : $(".qconfig-fv")
          const $el = $el0.closest('.form-namespace');
          const qtype=get_form_record($el0).${attrs.type_field}
