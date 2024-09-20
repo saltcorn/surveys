@@ -41,6 +41,7 @@ const questionType = {
             disabled: attrs.disabled,
             onChange: (attrs.onChange || "") + "update_qconfig(this)",
             onBlur: (attrs.onChange || "") + "update_qconfig(this)",
+            "data-on-cloned": "update_qconfig(this)",
             autocomplete: "off",
             required: required,
           },
