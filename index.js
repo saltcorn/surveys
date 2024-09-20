@@ -160,7 +160,7 @@ const question_configuration = {
       ),
       script(
         domReady(`
-    update_qconfig();
+    update_qconfig($(".qconfig${rndcls}"));
     //$(".qconfig${rndcls}").closest('form[data-viewname]').on('change', update_qconfig)      
         `)
       ),
@@ -170,7 +170,7 @@ const question_configuration = {
          const $el0 = ev ? (ev.target ? $(ev.target) : $(ev)) : $(".qconfig-fv")
          const $el = $el0.closest('.form-namespace');
          const qtype=get_form_record($el0).${attrs.type_field}
-         //console.log("qrtype", qtype)
+         //console.log({qtype, el:$el[0], ellen: $el.length,  name: $el.attr('name')})
          $el.find(".qtype-toggle").hide()
          const showq= ".qtype-toggle.qtype-"+qtype.replace(/ /g, "").replace("/", "")
          $el.find(showq).show()
