@@ -208,4 +208,5 @@ module.exports = {
   fieldviews: { question_configuration },
 
   dependencies,
+  ready_for_mobile: true,
 };
