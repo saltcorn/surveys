@@ -921,7 +921,7 @@ const autoSaveAnswerImpl = async (
   req
 ) => {
   const table = await Table.findOne({ id: table_id });
-  const qid = +body.name.substring(1).split("_")[0];
+  const qid = body.name.substring(1).split("_")[0];
   const qrow = await table.getRow({ [table.pk_name]: qid });
   const [ansTableName, ansTableKey] = answer_relation.split(".");
   const state = body.state;
