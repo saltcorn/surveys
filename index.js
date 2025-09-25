@@ -18,7 +18,7 @@ const Table = require("@saltcorn/data/models/table");
 const questionType = {
   name: "Question type",
   sql_name: "text",
-  attributes: {},
+  attributes: [],
   fieldviews: {
     show: {
       isEdit: false,
